@@ -6,6 +6,8 @@
 #include  <cstdlib>
 
 // HUSK AT ARRAYET SKAL VÆRE 1-INDEKSERET!!!
+// Lavede minheap fordi vi alligevel skal lave binary om
+// til ints og sorting, og den er nu mere overskuelig.
 
 MinHeap::MinHeap() {}
 
@@ -18,6 +20,7 @@ void MinHeap::minHeapify(int *a, int n, int i) {
     int right = i*2+1;
     int smallest = i;
 
+    /*
     if(left <= n && a[left] < a[i]) {
         smallest = left;
     }
@@ -29,6 +32,29 @@ void MinHeap::minHeapify(int *a, int n, int i) {
         a[i] = a[smallest];
         a[smallest] = temp;
         minHeapify(a,n,smallest);
+    }*/
+
+    // Modificeret til ikke at lave rekursivt kald, for hastighed + stack
+    bool b = true;
+    while(b) {
+        left = i*2;
+        right = i*2+1;
+        smallest = i;
+        if(left <= n && a[left] < a[i]) {
+            smallest = left;
+        }
+        if(right <= n && a[right] < a[smallest]) {
+            smallest = right;
+        }
+        if(smallest != i) {
+            int temp = a[i];
+            a[i] = a[smallest];
+            a[smallest] = temp;
+            i = smallest;
+        }
+        else {
+            b = false;
+        }
     }
 }
 
@@ -52,7 +78,7 @@ void MinHeap::insert(int *a, int n, int in) {
 int MinHeap::deleteMin(int *a, int n) {
     int ret = a[1];
     a[1] = a[n];
-    // For en god ordens skyld
+    // For en god ordens skyld flyt den "slettede" til enden af arrayet
     a[n] = ret;
     minHeapify(a,n-1,1);
     return ret;
@@ -64,9 +90,12 @@ void MinHeap::buildHeap(int *a, int n) {
     }
 }
 
+// Nye in-place sorting metoder for at gøre det nemmere
+
 void MinHeap::sortDescending(int *a, int n) {
     buildHeap(a,n);
     for(int i = n; i > 1; i--) {
+        // Et deletemin kald
         int temp = a[i];
         a[i] = a[1];
         a[1] = temp;

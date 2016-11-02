@@ -7,7 +7,7 @@
 
 
 class MinHeap {
-
+public:
     MinHeap();
     virtual ~MinHeap();
     void minHeapify(int* a, int n, int i);
