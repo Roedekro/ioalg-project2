@@ -17,7 +17,7 @@ public:
     FILE* file;
     InputStreamB();
     virtual ~InputStreamB();
-    void open(char* s);
+    void open(const char* s);
     int readNext();
     bool endOfStream();
     void close();

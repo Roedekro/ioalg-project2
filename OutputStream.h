@@ -7,7 +7,7 @@
 
 class OutputStream {
 public:
-    virtual void create(char* s) = 0;
+    virtual void create(const char* s) = 0;
     virtual void write(int* number) = 0;
     virtual void close() = 0;
     //void OutputStream();

@@ -18,7 +18,7 @@ InputStreamB::~InputStreamB() {
     // TODO Auto-generated destructor stub
 }
 
-void InputStreamB::open(char* s) {
+void InputStreamB::open(const char* s) {
     file = fopen(s, "rb");
 }
 

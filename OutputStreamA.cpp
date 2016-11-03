@@ -19,7 +19,7 @@ OutputStreamA::OutputStreamA() {
 OutputStreamA::~OutputStreamA() {
     // TODO Auto-generated destructor stub
 }
- void OutputStreamA::create(char* s) {
+ void OutputStreamA::create(const char* s) {
     filedesc = ::open(s, O_CREAT|O_RDWR);
 }
 

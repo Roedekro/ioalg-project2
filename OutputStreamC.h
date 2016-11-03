@@ -9,7 +9,7 @@
 
 using namespace std;
 
-class OutputStreamC {
+class OutputStreamC  : public OutputStream{
 public:
     int index;
     int * buffer;

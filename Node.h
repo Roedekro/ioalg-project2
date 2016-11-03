@@ -11,7 +11,7 @@
 using namespace std;
 
 class Node {
-
+public:
     int id;
     Node(int m, int p, int id, Node* parent, Node* predecessor, int orderAmongSiblings);
     virtual ~Node();
@@ -21,9 +21,10 @@ class Node {
     Node** children; // Array af pointers
     int childrenCounter;
     string* childrensLastPage;
-    int* childrensLastPageOffset;
+    int childrensLastPageOffset;
     Node* predecessor;
     int orderAmongSiblings;
+    int records;
 };
 
 

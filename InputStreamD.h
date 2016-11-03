@@ -25,7 +25,7 @@ public:
     int n;
     InputStreamD(int portionSize, int n);
     virtual ~InputStreamD();
-    void open(char* s);
+    void open(const char* s);
     int readNext();
     bool endOfStream();
     void close();

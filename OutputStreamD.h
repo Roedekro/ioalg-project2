@@ -18,7 +18,7 @@ public:
     int n;
     OutputStreamD(int portionSize, int n);
     virtual ~OutputStreamD();
-    void create(char* s);
+    void create(const char* s);
     void write(int* number);
     void close();
 

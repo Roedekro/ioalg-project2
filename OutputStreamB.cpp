@@ -24,7 +24,7 @@ OutputStreamB::~OutputStreamB() {
     // TODO Auto-generated destructor stub
 }
 
-void OutputStreamB::create(char* s) {
+void OutputStreamB::create(const char* s) {
     file = fopen(s, "wb");
     if(file == NULL) {
         perror("File StreamB");

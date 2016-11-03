@@ -9,7 +9,7 @@
 
 using namespace std;
 
-class InputStreamC {
+class InputStreamC : public InputStream{
 public:
     int filedesc;
     int size;

@@ -8,7 +8,7 @@
 #include "Node.h"
 
 class ExternalHeap {
-
+public:
     ExternalHeap(int fanout, int nodesize, int blocksize, int internalmemory, int streamtype);
     virtual ~ExternalHeap();
     int fanout;
@@ -17,12 +17,16 @@ class ExternalHeap {
     int internalMemorySize;
     int streamType;
     void insert(int i);
+    void siftup(Node* node);
     int deleteMin();
     int* insertBuffer;
     int insertBufferCounter;
     int* rootPageBuffer;
     Node* rootNode;
     Node* lastNode;
+    int nodeCounter;
+    vector<Node*>* nodeVector;
+    int* mergeBuffer;
 };
 
 

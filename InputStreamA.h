@@ -17,7 +17,7 @@ public:
 	int filedesc;
 	InputStreamA();
 	virtual ~InputStreamA();
-	void open(char* s);
+	void open(const char* s);
 	int readNext();
 	bool endOfStream();
 	void close();

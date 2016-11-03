@@ -37,7 +37,7 @@ InputStreamD::~InputStreamD() {
     // TODO Auto-generated destructor stub
 }
 
-void InputStreamD::open(char* s) {
+void InputStreamD::open(const char* s) {
     file = fopen(s, "r+");
     if(file == NULL) {
         perror("File is NULL");
