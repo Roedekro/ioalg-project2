@@ -234,7 +234,16 @@ void ExternalHeap::siftup(Node *node) {
         b = false; // Bliver sat true igen hvis vi henter ints fra child til parent
         // og dermed skal checke på parents parent. Hvis det ikke sker kan vi stoppe.
 
-        // Merge og divide
+        // Udregn størrelsen af første til for type D.
+        int pC = parent->records % pageSize;
+        if(pC == 0) {
+            pC = pageSize;
+        }
+        int cC = node->records % pageSize;
+        if(cC == 0) {
+            cC = pageSize;
+        }
+
         InputStream* inPar;
         InputStream* inChild;
         OutputStream* outPar;
@@ -260,8 +269,8 @@ void ExternalHeap::siftup(Node *node) {
         else if(streamType == 4) {
             inPar = new InputStreamD(blockSize,pageSize);
             inChild = new InputStreamD(blockSize,pageSize);
-            outPar = new OutputStreamD(blockSize,pageSize);
-            outChild = new OutputStreamD(blockSize,pageSize);
+            outPar = new OutputStreamD(blockSize,pC);
+            outChild = new OutputStreamD(blockSize,cC);
         }
 
         inPar->open(parent->pages[parent->pageCounter-1].c_str());
@@ -541,7 +550,7 @@ void ExternalHeap::siftup(Node *node) {
             inPar = new InputStreamC(blockSize/4);
         }
         else if(streamType == 4) {
-            inPar = new InputStreamD(blockSize,pageSize);
+            inPar = new InputStreamD(blockSize,recordsToParent);
         }
         inPar->open("outParent");
         for(int i = 1; i <= recordsToParent; i++) {
@@ -630,7 +639,7 @@ void ExternalHeap::siftup(Node *node) {
             inChild = new InputStreamC(blockSize/4);
         }
         else if(streamType == 4) {
-            inChild = new InputStreamD(blockSize,pageSize);
+            inChild = new InputStreamD(blockSize,recordsToChild);
         }
         inChild->open("inChild");
         for(int i = 1; i <= recordsToChild; i++) {
@@ -760,6 +769,11 @@ void ExternalHeap::siftup(Node *node) {
     // Hvis vi nåede hele vejen op til root skal vi genindlæse rootBuffer
     if(parent == NULL) {
 
+        rootPageBufferCounter = rootNode->records % pageSize;
+        if(rootPageBufferCounter == 0) {
+            rootPageBufferCounter = pageSize;
+        }
+
         InputStream* inRoot;
         if(streamType == 1) {
             inRoot = new InputStreamA();;
@@ -771,11 +785,10 @@ void ExternalHeap::siftup(Node *node) {
             inRoot = new InputStreamC(blockSize/4);
         }
         else if(streamType == 4) {
-            inRoot = new InputStreamD(blockSize,pageSize);
+            inRoot = new InputStreamD(blockSize,rootPageBufferCounter);
         }
         inRoot->open(rootNode->pages[rootNode->pageCounter-1].c_str());
-        rootPageBufferCounter = rootNode->records % pageSize;
-        if(rootPageBufferCounter == 0) rootPageBufferCounter = pageSize;
+
         for(int i = 1; i <= rootPageBufferCounter; i++) {
             rootPageBuffer[i] = inRoot->readNext();
         }
