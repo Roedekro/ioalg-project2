@@ -6,13 +6,14 @@
 #define IOALG_PROJECT2_EXTERNALHEAP_H
 
 #include "Node.h"
+#include "BinElement.h"
 
 class ExternalHeap {
 public:
-    ExternalHeap(int fanout, int nodesize, int blocksize, int internalmemory, int streamtype);
+    ExternalHeap(int fanout, int pagesize, int blocksize, int internalmemory, int streamtype);
     virtual ~ExternalHeap();
     int fanout;
-    int nodeSize;
+    int pageSize;
     int blockSize;
     int internalMemorySize;
     int streamType;
@@ -22,11 +23,13 @@ public:
     int* insertBuffer;
     int insertBufferCounter;
     int* rootPageBuffer;
+    int rootPageBufferCounter;
     Node* rootNode;
     Node* lastNode;
     int nodeCounter;
     vector<Node*>* nodeVector;
-    int* mergeBuffer;
+    int* mergeIntBuffer;
+    BinElement** mergeBinBuffer;
 };
 
 
