@@ -30,6 +30,8 @@ public:
     vector<Node*>* nodeVector;
     int* mergeIntBuffer;
     BinElement** mergeBinBuffer;
+    void deleteFromRoot();
+    void siftdown(Node* node);
 };
 
 

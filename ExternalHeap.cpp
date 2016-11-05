@@ -188,6 +188,7 @@ void ExternalHeap::insert(int i) {
                     prevLastNode->id++;
                     newNode->predecessor = prevLastNode->predecessor;
                     prevLastNode->predecessor = newNode;
+                    lastNode = prevLastNode;
 
                     // To scenarier, enten er parents den samme eller ikke
                     if(parent->id == newParent->id) { ;
@@ -234,7 +235,7 @@ void ExternalHeap::siftup(Node *node) {
         b = false; // Bliver sat true igen hvis vi henter ints fra child til parent
         // og dermed skal checke på parents parent. Hvis det ikke sker kan vi stoppe.
 
-        // Udregn størrelsen af første til for type D.
+        // Udregn størrelsen af første page for type D.
         int pC = parent->records % pageSize;
         if(pC == 0) {
             pC = pageSize;
@@ -800,6 +801,101 @@ void ExternalHeap::siftup(Node *node) {
 
 int ExternalHeap::deleteMin() {
 
+    // Sorter både insertBuffer og rootBuffer
+    // Brug descending da den er hurtigere and ascending
+    int ret;
+    int insertInt = -1;
+    int rootInt = -1;
 
-    return 1;
+    MinHeap* min = new MinHeap();
+    if(insertBufferCounter > 0) {
+        min->sortDescending(insertBuffer, insertBufferCounter);
+        insertInt = insertBuffer[insertBufferCounter];
+    }
+    if(rootPageBufferCounter > 0) {
+        min->sortDescending(rootPageBuffer, rootPageBufferCounter); // <--- Nødvendig? Fjern i heapsort for mere speed
+        rootInt = rootPageBuffer[rootPageBufferCounter];
+    }
+
+    // Sammenlign og find mindste
+    if(insertInt != -1 && rootInt != -1) {
+        if(insertInt < rootInt) {
+            ret = insertInt;
+            insertBufferCounter--;
+        }
+        else {
+            ret = rootInt;
+            rootPageBufferCounter--;
+            deleteFromRoot();
+        }
+    }
+    else if(insertInt != -1) {
+        ret = insertInt;
+        insertBufferCounter--;
+    }
+    else {
+        ret = rootInt;
+        rootPageBufferCounter--;
+        deleteFromRoot();
+    }
+
+    return ret;
+}
+
+void ExternalHeap::deleteFromRoot() {
+
+    // Vi er i denne her nødt til at slette med det samme, da der kan komme siftups
+    // Ellers kan vi vente med at slette
+
+    // Men vi kan lave et "trick" ved bare at tælle records ned med mindre det skaber et
+    // page-shift eller at vi ikke længere overholder loadCondition.
+
+    bool read = false;
+
+    if(rootNode->records % pageSize != 1) {
+        rootNode->records--;
+    }
+    else {
+        // Læs ny side ind
+        rootNode->records--;
+        rootNode->pageCounter--;
+        read = true;
+    }
+
+    if(rootNode->records < fanout*pageSize/2) {
+        siftdown(rootNode);
+        read = true;
+    }
+
+    if(read) {
+
+        int toRead = rootNode->records % pageSize;
+        if(toRead == 0) {
+            toRead = pageSize;
+        }
+
+        InputStream* in;
+        if(streamType == 1) {
+            in = new InputStreamA();;
+        }
+        else if(streamType == 2) {
+            in = new InputStreamB();
+        }
+        else if(streamType == 3) {
+            in = new InputStreamC(blockSize/4);
+        }
+        else if(streamType == 4) {
+            in = new InputStreamD(blockSize,toRead);
+        }
+        in->open(rootNode->pages[rootNode->pageCounter-1].c_str());
+
+        for(int i = 1; i <= toRead; i++) {
+            rootPageBuffer[i] = in->readNext();
+        }
+        rootPageBufferCounter = toRead;
+    }
+}
+
+void ExternalHeap::siftdown(Node* node) {
+
 }
