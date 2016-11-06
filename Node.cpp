@@ -4,8 +4,9 @@
 
 #include "Node.h"
 
-Node::Node(int m, int p, int id, Node *par, Node *pred, int ord) {
+Node::Node(int m, int p, int i, Node *par, Node *pred, int ord) {
 
+    id = i;
     pageCounter = m;
     parent = par;
     children = new Node*[m];

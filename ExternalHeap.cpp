@@ -17,6 +17,7 @@
 #include "Binary.h"
 #include <cstdlib>
 #include <sstream>
+#include <iostream>
 
 ExternalHeap::ExternalHeap(int f, int p, int b, int i, int t) {
 
@@ -42,14 +43,14 @@ ExternalHeap::~ExternalHeap() {}
 
 void ExternalHeap::insert(int i) {
 
-    if(insertBufferCounter < internalMemorySize+1) {
+    if(insertBufferCounter+2 < internalMemorySize+1) { // +1 for 1 indeksering, +1 for nyt element
         insertBufferCounter++;
         insertBuffer[insertBufferCounter] = i;
     }
     else {
 
         nodeCounter++;
-        insertBufferCounter = 1;
+        insertBufferCounter++;
         insertBuffer[insertBufferCounter] = i;
 
         // Først sorter dem i descending order med heapsort
@@ -70,7 +71,7 @@ void ExternalHeap::insert(int i) {
         else if(streamType == 4) {
             out = new OutputStreamD(blockSize,pageSize);
         }
-        int r = 1;
+        int r = 0;
         int j = 0;
         ostringstream oss1;
         ostringstream oss2;
@@ -110,7 +111,7 @@ void ExternalHeap::insert(int i) {
                 out->create(test);
                 out->write(&insertBuffer[i]);
                 j = 1;
-                nodePages[r-1] = s;
+                nodePages[r] = s;
             }
             else {
                 out->write(&insertBuffer[i]);
@@ -143,6 +144,7 @@ void ExternalHeap::insert(int i) {
             }
             string s = newNode->pages[fanout-1];
             const char* test = s.c_str();
+            cout << s << '\n';
             in->open(test);
             for(int i = 0; i < pageSize; i++) {
                 rootPageBuffer[i] = in->readNext();
@@ -150,12 +152,14 @@ void ExternalHeap::insert(int i) {
             rootPageBufferCounter = pageSize;
             in->close();
             delete(in);
+
+            cout << "New rootNode with id = " << newNode->id << '\n';
         }
         else {
             // Ny node i træet
             Node* prevLastNode = lastNode;
             int parentNumber = nodeCounter/2;
-            Node* parent = nodeVector->at(parentNumber);
+            Node* parent = nodeVector->at(parentNumber-1);
             parent->childrenCounter++;
             Node* newNode = new Node(fanout, pageSize, nodeCounter, parent, lastNode, parent->childrenCounter);
             parent->children[parent->childrenCounter] = newNode;
@@ -164,7 +168,7 @@ void ExternalHeap::insert(int i) {
             newNode->pages = nodePages;
             lastNode = newNode;
 
-
+            nodeVector->push_back(newNode);
 
 
 
@@ -220,9 +224,11 @@ void ExternalHeap::insert(int i) {
                 }
             }
 
+            cout << "New Node with id = " << newNode->id << '\n';
             // Sift up!
             siftup(newNode);
         }
+        insertBufferCounter = 0;
     }
 }
 
@@ -358,8 +364,8 @@ void ExternalHeap::siftup(Node *node) {
 
         int parentCounter = pageSize;
         int childCounter = pageSize;
-        int parentPageCounter = parent->pageCounter-1;
-        int childPageCounter = node->pageCounter-1;
+        int parentPageCounter = parent->pageCounter;
+        int childPageCounter = node->pageCounter;
         int binCounter = readFromParent + readFromChild;
 
         if(parentPageCounter != 0) {
@@ -370,9 +376,13 @@ void ExternalHeap::siftup(Node *node) {
         }
 
 
+
+
         // Skriv ints ud til outParent
         for(int i = 0; i < recordsToParent; i++) {
             BinElement* ele = bin->outheap(mergeBinBuffer,binCounter);
+            cout << "To parent: " << ele->value << '\n';
+            cout << "ID = " << ele->id << '\n';
             outPar->write(&ele->value);
             binCounter--;
             if(ele->id == 1) {
@@ -401,7 +411,7 @@ void ExternalHeap::siftup(Node *node) {
                             inPar = new InputStreamD(blockSize,pageSize);
                         }
                         inPar->open(parent->pages[parentPageCounter-1].c_str());
-                        parentCounter = pageSize-1;
+                        parentCounter = pageSize;
                         ele->value = inPar->readNext();
                         bin->inheap(mergeBinBuffer, binCounter, ele);
                         binCounter++;
@@ -420,6 +430,7 @@ void ExternalHeap::siftup(Node *node) {
                     // Genbrug element
                     ele->value = inChild->readNext();
                     bin->inheap(mergeBinBuffer, binCounter, ele);
+                    binCounter++;
                 }
                 else {
                     inChild->close();
@@ -439,7 +450,7 @@ void ExternalHeap::siftup(Node *node) {
                             inChild = new InputStreamD(blockSize,pageSize);
                         }
                         inChild->open(node->pages[childPageCounter-1].c_str());
-                        childCounter = pageSize-1;
+                        childCounter = pageSize;
                         ele->value = inChild->readNext();
                         bin->inheap(mergeBinBuffer, binCounter, ele);
                         binCounter++;
@@ -458,6 +469,8 @@ void ExternalHeap::siftup(Node *node) {
 
         for(int i = 0; i < recordsToChild; i++) {
             BinElement* ele = bin->outheap(mergeBinBuffer,binCounter);
+            cout << "To child: " << ele->value << '\n';
+            cout << "ID = " << ele->id << '\n';
             outChild->write(&ele->value);
             binCounter--;
             if(ele->id == 1) {
@@ -535,10 +548,11 @@ void ExternalHeap::siftup(Node *node) {
         // Ryd pænt op
         outChild->close();
         delete(outChild);
-        inPar->close();
-        delete(inPar);
-        inChild->close();
-        delete(inChild);
+        //inPar->close(); <--- Er allerede lukket, da vi læste den sidste
+        //delete(inPar);
+        //inChild->close();
+        //delete(inChild);
+
 
         // Indlæst ints fra outParent til mergeIntBuffer
         if(streamType == 1) {
@@ -593,7 +607,7 @@ void ExternalHeap::siftup(Node *node) {
 
         for(int i = 1; i <= recordsToParent; i++) {
             j++;
-            if(j <= pageSize) {
+            if(j < pageSize) {
                 outPar->write(&mergeIntBuffer[j]);
             }
             else {
@@ -642,7 +656,7 @@ void ExternalHeap::siftup(Node *node) {
         else if(streamType == 4) {
             inChild = new InputStreamD(blockSize,recordsToChild);
         }
-        inChild->open("inChild");
+        inChild->open("outChild");
         for(int i = 1; i <= recordsToChild; i++) {
             mergeIntBuffer[i] = inChild->readNext();
         }
@@ -725,6 +739,18 @@ void ExternalHeap::siftup(Node *node) {
             if(offset == 0) offset = pageSize;
             parent->childrensLastPageOffset = offset;
         }
+
+        // Opdater pages
+        int pages = node->records / pageSize;
+        if(node->records % pageSize != 0) {
+            pages++;
+        }
+        node->pageCounter = pages;
+        pages = parent->records / pageSize;
+        if(parent->records % pageSize != 0) {
+            pages++;
+        }
+        parent->pageCounter = pages;
 
         // Setup for næste iteration
         node = parent;
@@ -1320,6 +1346,7 @@ void ExternalHeap::siftdownLeaf(Node *node) {
             parent->childrenCounter--;
             // Kan her opdateres lastChildsPage med mere, men vi bruger det ikke
             lastNode = lastNode->predecessor;
+            nodeCounter--;
         }
         else {
             int pages = lastNode->records / pageSize;

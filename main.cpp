@@ -1,5 +1,6 @@
 #include <iostream>
 #include "MinHeap.h"
+#include "ExternalHeap.h"
 
 using namespace std;
 
@@ -42,10 +43,25 @@ void testMinHeap() {
     }
 }
 
+void testInsert() {
+    ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3);
+    for(int i = 0; i < 10; i++) {
+        heap->insert(i);
+        cout << i << '\n';
+    }
+    cout << "---Insert Done\n";
+
+    for(int i = 0; i < 10; i++) {
+        int ret = heap->deleteMin();
+        cout << ret << '\n';
+    }
+
+}
 
 int main() {
 
-    testMinHeap();
+    testInsert();
+    //testMinHeap();
 
     return 0;
 }

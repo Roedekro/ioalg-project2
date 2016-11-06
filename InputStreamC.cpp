@@ -76,5 +76,6 @@ bool InputStreamC::endOfStream() {
 
 void InputStreamC::close() {
     ::close(filedesc);
+    delete(buffer);
 }
 
