@@ -27,14 +27,14 @@ ExternalHeap::ExternalHeap(int f, int p, int b, int i, int t) {
     streamType = t;
     insertBuffer = new int[internalMemorySize+1];
     insertBufferCounter = 0;
-    rootPageBuffer = new int[internalMemorySize/fanout+1];
+    rootPageBuffer = new int[pageSize+1];
     rootPageBufferCounter = 0;
     rootNode = NULL;
     lastNode = NULL;
     nodeCounter = 0;
     nodeVector = new vector<Node*>;
-    mergeIntBuffer = new int[internalMemorySize+1];
-    mergeBinBuffer = new BinElement*[internalMemorySize+1];
+    mergeIntBuffer = new int[(fanout+1)*pageSize+1];
+    mergeBinBuffer = new BinElement*[(fanout+1)*pageSize+1];
 
 }
 
@@ -813,7 +813,7 @@ int ExternalHeap::deleteMin() {
         insertInt = insertBuffer[insertBufferCounter];
     }
     if(rootPageBufferCounter > 0) {
-        min->sortDescending(rootPageBuffer, rootPageBufferCounter); // <--- Nødvendig? Fjern i heapsort for mere speed
+        //min->sortDescending(rootPageBuffer, rootPageBufferCounter); // <--- Nødvendig? Fjern i heapsort for mere speed
         rootInt = rootPageBuffer[rootPageBufferCounter];
     }
 
@@ -893,9 +893,448 @@ void ExternalHeap::deleteFromRoot() {
             rootPageBuffer[i] = in->readNext();
         }
         rootPageBufferCounter = toRead;
+        in->close();
+        delete(in);
     }
 }
 
 void ExternalHeap::siftdown(Node* node) {
 
+    if(node->childrenCounter == 0) {
+        // Special case
+        siftdownLeaf(node);
+    }
+    else {
+
+        int inputCounter[node->childrenCounter+1]; // <------------------------------------ OBS! Skal det news? Eller er det så småt at det kan være op stack?
+        InputStream* inputStreams[node->childrenCounter+1];
+
+        // Først en inputStream til node
+        InputStream* in;
+        int toread = node->records % pageSize;
+        if(toread == 0 && node->records != 0) {
+            toread = pageSize;
+        }
+
+        if(streamType == 1) {
+            in = new InputStreamA();
+        }
+        else if(streamType == 2) {
+            in = new InputStreamB();
+        }
+        else if(streamType == 3) {
+            in = new InputStreamC(blockSize/4);
+        }
+        else if(streamType == 4) {
+            in = new InputStreamD(blockSize,toread);
+        }
+        in->open(node->pages[node->pageCounter-1].c_str());
+        for(int i = 1; i <= toread; i++) {
+            mergeBinBuffer[i] = new BinElement(0, in->readNext());
+        }
+        inputStreams[0] = in;
+
+        int total = toread;
+
+        inputCounter[0] = 1;
+        node->pageCounter--;
+
+        // Gør det samme for børnene
+        for(int i = 1; i <= node->childrenCounter; i++) {
+            InputStream* in;
+            int toread = node->children[i-1]->records % pageSize;
+            if(toread == 0) {
+                toread = pageSize;
+            }
+
+            inputCounter[i] = 1;
+
+            if(streamType == 1) {
+                in = new InputStreamA();;
+            }
+            else if(streamType == 2) {
+                in = new InputStreamB();
+            }
+            else if(streamType == 3) {
+                in = new InputStreamC(blockSize/4);
+            }
+            else if(streamType == 4) {
+                in = new InputStreamD(blockSize,toread);
+            }
+            in->open(node->children[i-1]->pages[node->children[i-1]->pageCounter-1].c_str());
+            for(int j = 1; j <= toread; j++) {
+                mergeBinBuffer[total+j] = new BinElement(i,in->readNext());
+            }
+            inputStreams[i] = in;
+            total = total + toread;
+            node->children[i-1]->pageCounter--; // Brug som counter til at se om vi senere kan læse mere fra denne
+        }
+
+        // Dan en heap
+        Binary* bin = new Binary();
+        bin->setheap(mergeBinBuffer, total);
+
+        // Outstream til root
+        OutputStream* out;
+        if(streamType == 1) {
+            out = new OutputStreamA();;
+        }
+        else if(streamType == 2) {
+            out = new OutputStreamB();
+        }
+        else if(streamType == 3) {
+            out = new OutputStreamC(blockSize/4);
+        }
+        else if(streamType == 4) {
+            out = new OutputStreamD(blockSize,fanout*pageSize);
+        }
+        out->create("outRoot");
+
+        // Fyld root ud med ints fra heap
+        for(int i = 0; i < fanout*pageSize; i++) {
+            BinElement* ele = bin->outheap(mergeBinBuffer, total);
+            out->write(&ele->value);
+            total--;
+
+            // Find en ny value og genbrug el
+            if(inputCounter[ele->id] - 1 != 0) {
+                inputCounter[ele->id] = inputCounter[ele->id]-1;
+                ele->value = inputStreams[ele->id]->readNext();
+                bin->inheap(mergeBinBuffer,total,ele);
+                total++;
+                if(ele->id != 0) {
+                    node->children[ele->id-1]->records--; // Tæl ned nu, ryd op senere
+                }
+                else {
+                    node->records--;
+                }
+            }
+            else {
+                // Skift page
+
+                // Luk gammel in
+                InputStream* in = inputStreams[ele->id];
+                in->close();
+                delete(in);
+
+                // Hvis der er flere pages at indlæse
+                if(ele->id == 0) {
+                    if(node->pageCounter > 0) {
+                        if(streamType == 1) {
+                            in = new InputStreamA();;
+                        }
+                        else if(streamType == 2) {
+                            in = new InputStreamB();
+                        }
+                        else if(streamType == 3) {
+                            in = new InputStreamC(blockSize/4);
+                        }
+                        else if(streamType == 4) {
+                            in = new InputStreamD(blockSize,toread);
+                        }
+                        in->open(node->pages[node->pageCounter-1].c_str());
+                        ele->value = in->readNext();
+                        bin->inheap(mergeBinBuffer, total, ele);
+                        total++;
+                        inputStreams[0] = in;
+                        inputCounter[0] = pageSize-1;
+                        node->pageCounter--;
+                    }
+                    // Ellers gør intet, uden et nyt element i bin vil vi aldrig kigge på root igen
+                }
+                else {
+                    if(node->children[ele->id-1]->pageCounter > 0) {
+                        if(streamType == 1) {
+                            in = new InputStreamA();;
+                        }
+                        else if(streamType == 2) {
+                            in = new InputStreamB();
+                        }
+                        else if(streamType == 3) {
+                            in = new InputStreamC(blockSize/4);
+                        }
+                        else if(streamType == 4) {
+                            in = new InputStreamD(blockSize,toread);
+                        }
+                        in->open(node->children[ele->id-1]->pages[node->children[ele->id-1]->pageCounter-1].c_str());
+                        ele->value = in->readNext();
+                        bin->inheap(mergeBinBuffer, total, ele);
+                        total++;
+                        inputStreams[ele->id] = in;
+                        inputCounter[ele->id] = pageSize-1;
+                        node->children[ele->id-1]->pageCounter--;
+                    }
+                    // Ellers gør intet, uden et nyt element i bin vil vi aldrig kigge på denne node igen
+                }
+            }
+        }
+        out->close();
+        delete(out);
+
+        for(int i = 0; i <= node->childrenCounter; i++) {
+            InputStream* in = inputStreams[i];
+            in->close();
+            delete(in);
+            // Bemærk at vi ikke ryddede op i dem der ikke længere blev læst fra ovenover,
+            // derfor kan vi trygt løbe dem igennem og lukke dem nu.
+        }
+
+        if(streamType == 1) {
+            in = new InputStreamA();
+        }
+        else if(streamType == 2) {
+            in = new InputStreamB();
+        }
+        else if(streamType == 3) {
+            in = new InputStreamC(blockSize/4);
+        }
+        else if(streamType == 4) {
+            in = new InputStreamD(blockSize,fanout*pageSize);
+        }
+        in->open("outRoot");
+
+
+        int r = 0;
+        int j = pageSize;
+        for(int i = 1; i <= fanout*pageSize; i++) {
+            int val = in->readNext();
+            j++;
+            if(j > pageSize) {
+                out->close();
+                delete(out);
+
+                if(streamType == 1) {
+                    out = new OutputStreamA();
+                }
+                else if(streamType == 2) {
+                    out = new OutputStreamB();
+                }
+                else if(streamType == 3) {
+                    out = new OutputStreamC(blockSize/4);;
+                }
+                else if(streamType == 4) {
+                    out = new OutputStreamD(blockSize,pageSize);
+                }
+                ostringstream oss1;
+                ostringstream oss2;
+                oss1 << node->id;
+                oss2 << r;
+                string s = "node" + oss1.str() + "page" + oss2.str();
+                const char* test = s.c_str();
+                out->create(test);
+
+                out->write(&val);
+                j = 1;
+                r++;
+
+            }
+            else {
+                out->write(&val);
+            }
+        }
+        out->close();
+        delete(out);
+        in->close();
+        delete(in);
+
+        node->records = fanout*pageSize;
+        node->pageCounter = r;
+
+        // Ryd op i børnene, deres records er talt ned
+        // og pages er talt ned. Men pages kan være forkert.
+
+        for(int i = 0; i < node->childrenCounter; i++) {
+            int pages = node->children[i]->records / pageSize;
+            if(node->children[i]->records % pageSize != 0) {
+                pages++;
+            }
+            node->children[i]->pageCounter = pages;
+            // Kan update last page, men vi bruger den ikke?
+
+            // Se om vi skal køre siftdown på barnet.
+            if(node->children[i]->records < fanout*pageSize / 2) {
+
+                siftdown(node->children[i]);
+            }
+        }
+    }
+}
+
+void ExternalHeap::siftdownLeaf(Node *node) {
+
+    if(node->id != lastNode->id) {
+
+        // Stjæl records fra sidste node
+        int recordsToSteal = fanout*pageSize - node->records; // Fyld den op
+        if(lastNode->records < recordsToSteal) {
+            recordsToSteal = lastNode->records; // Hvis vi ikke kan fylde helt op, så tag dem alle
+        }
+
+
+
+
+        // Læs nodes records ind i bufferen
+        for(int i = 0; i < node->pageCounter; i++) {
+
+            int counter;
+            if(i == node->pageCounter-1) {
+                counter = node->records % pageSize;
+                if(counter == 0) {
+                    counter = pageSize;
+                }
+            }
+            else {
+                counter = pageSize;
+            }
+
+            InputStream* in;
+            if(streamType == 1) {
+                in = new InputStreamA();
+            }
+            else if(streamType == 2) {
+                in = new InputStreamB();
+            }
+            else if(streamType == 3) {
+                in = new InputStreamC(blockSize/4);
+            }
+            else if(streamType == 4) {
+                in = new InputStreamD(blockSize,counter);
+            }
+            in->open(node->pages[i].c_str());
+
+            for(int j = 1; j <= counter; j++) {
+                mergeIntBuffer[i*pageSize+j] = in->readNext();
+            }
+            in->close();
+            delete(in);
+        }
+
+        // Læs lastnodes records ind i bufferen
+
+        int toread = lastNode->records % pageSize;
+        if(toread == 0) {
+            toread = pageSize;
+        }
+        InputStream* in;
+        if(streamType == 1) {
+            in = new InputStreamA();
+        }
+        else if(streamType == 2) {
+            in = new InputStreamB();
+        }
+        else if(streamType == 3) {
+            in = new InputStreamC(blockSize/4);
+        }
+        else if(streamType == 4) {
+            in = new InputStreamD(blockSize,toread);
+        }
+        in->open(lastNode->pages[lastNode->pageCounter-1].c_str());
+
+        int r = 0;
+        int j = 0;
+        for(int i = 1; i<=recordsToSteal; i++) {
+            j++;
+            if(j > toread) {
+                in->close();
+                delete(in);
+                if(streamType == 1) {
+                    in = new InputStreamA();
+                }
+                else if(streamType == 2) {
+                    in = new InputStreamB();
+                }
+                else if(streamType == 3) {
+                    in = new InputStreamC(blockSize/4);
+                }
+                else if(streamType == 4) {
+                    in = new InputStreamD(blockSize,pageSize);
+                }
+                r++;
+                in->open(lastNode->pages[lastNode->pageCounter-r].c_str());
+                mergeIntBuffer[node->records + i] = in->readNext();
+                j = 1;
+                toread = pageSize;
+            }
+            else {
+                mergeIntBuffer[node->records + i] = in->readNext();
+            }
+        }
+        in->close();
+        delete(in);
+
+        MinHeap* min = new MinHeap();
+        min->sortAscending(mergeIntBuffer, node->records + recordsToSteal);
+
+        node->records = node->records + recordsToSteal;
+        int pages = node->records / pageSize;
+        if(node->records % pageSize != 0) {
+            pages++;
+        }
+        node->pageCounter = pages;
+
+        for(int i = 0; i < pages; i++) {
+            OutputStream* out;
+            if(streamType == 1) {
+                out = new OutputStreamA();
+            }
+            else if(streamType == 2) {
+                out = new OutputStreamB();
+            }
+            else if(streamType == 3) {
+                out = new OutputStreamC(blockSize/4);;
+            }
+            else if(streamType == 4) {
+                out = new OutputStreamD(blockSize,pageSize);
+            }
+            ostringstream oss1;
+            ostringstream oss2;
+            oss1 << node->id;
+            oss2 << i;
+            string s = "node" + oss1.str() + "page" + oss2.str();
+            const char* test = s.c_str();
+            out->create(test);
+            if(i == pages-1) {
+                int counter = node->records % pageSize;
+                if(counter == 0) {
+                    counter = pageSize;
+                }
+                for(int j = 1; j <= counter; j++) {
+                    out->write(&mergeIntBuffer[i*pageSize + j]);
+                }
+            }
+            else {
+                for(int j = 1; j <= pageSize; j++) {
+                    out->write(&mergeIntBuffer[i*pageSize + j]);
+                }
+            }
+
+            out->close();
+            delete(out);
+
+        }
+
+        // Ryd op i lastNode
+        lastNode->records = lastNode->records - recordsToSteal;
+        if(lastNode->records == 0) {
+            Node* parent = lastNode->parent;
+            parent->childrenCounter--;
+            // Kan her opdateres lastChildsPage med mere, men vi bruger det ikke
+            lastNode = lastNode->predecessor;
+        }
+        else {
+            int pages = lastNode->records / pageSize;
+            if(lastNode->records % pageSize > 0) {
+                pages++;
+            }
+            lastNode->pageCounter = pages;
+        }
+
+
+        // Check om vi nu overholder loadCondition
+
+        if(node->records < fanout*pageSize / 2) {
+            siftdownLeaf(node);
+        }
+
+    }
 }
