@@ -162,7 +162,7 @@ void ExternalHeap::insert(int i) {
             Node* parent = nodeVector->at(parentNumber-1);
             parent->childrenCounter++;
             Node* newNode = new Node(fanout, pageSize, nodeCounter, parent, lastNode, parent->childrenCounter);
-            parent->children[parent->childrenCounter] = newNode;
+            parent->children[parent->childrenCounter-1] = newNode;
             parent->childrensLastPage = &newNode->pages[fanout-1];
             parent->childrensLastPageOffset = pageSize;
             newNode->pages = nodePages;
@@ -926,6 +926,9 @@ void ExternalHeap::deleteFromRoot() {
 
 void ExternalHeap::siftdown(Node* node) {
 
+    cout << "siftdown on node " << node->id << '\n';
+
+
     if(node->childrenCounter == 0) {
         // Special case
         siftdownLeaf(node);
@@ -987,6 +990,8 @@ void ExternalHeap::siftdown(Node* node) {
             else if(streamType == 4) {
                 in = new InputStreamD(blockSize,toread);
             }
+            cout << "Nodes child: " << node->children[i-1]->id << '\n';
+            cout << "Opening: " << node->children[i-1]->pages[node->children[i-1]->pageCounter-1].c_str() << '\n';
             in->open(node->children[i-1]->pages[node->children[i-1]->pageCounter-1].c_str());
             for(int j = 1; j <= toread; j++) {
                 mergeBinBuffer[total+j] = new BinElement(i,in->readNext());
@@ -1094,8 +1099,8 @@ void ExternalHeap::siftdown(Node* node) {
                 }
             }
         }
-        out->close();
-        delete(out);
+        //out->close(); Bliver gjort i linie 1134
+        //delete(out);
 
         for(int i = 0; i <= node->childrenCounter; i++) {
             InputStream* in = inputStreams[i];
