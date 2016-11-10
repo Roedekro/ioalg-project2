@@ -49,11 +49,11 @@ void testInsert() {
         heap->insert(i);
         cout << i << '\n';
     }
-    cout << "---Insert Done\n";
+    cout << "--------------------------------------------Insert Done\n";
 
     for(int i = 0; i < 10; i++) {
         int ret = heap->deleteMin();
-        cout << ret << '\n';
+        cout << "------------------------ Deleted: " << ret << '\n';
     }
 
 }

@@ -551,7 +551,9 @@ void ExternalHeap::siftup(Node *node) {
         // Ryd pænt op
         outChild->close();
         delete(outChild);
-        //inPar->close(); <--- Er allerede lukket, da vi læste den sidste
+
+        // De er udkommenteret da de er lukkede og deletet ovenfor
+        //inPar->close();
         //delete(inPar);
         //inChild->close();
         //delete(inChild);
@@ -602,9 +604,10 @@ void ExternalHeap::siftup(Node *node) {
         const char* test = s.c_str();
         outPar->create(test);
 
+        /* Gøres til sidst
         parentPageCounter = recordsToParent % pageSize;
         if(recordsToParent % pageSize != 0) parentPageCounter++;
-        parent->pageCounter = parentPageCounter;
+        parent->pageCounter = parentPageCounter;*/
         int r = 0;
         int j = 0;
 
@@ -691,9 +694,10 @@ void ExternalHeap::siftup(Node *node) {
         const char* test2 = s2.c_str();
         outPar->create(test2);
 
+        /* Gøres til sidst
         childPageCounter = recordsToChild % pageSize;
         if(recordsToChild % pageSize != 0) childPageCounter++;
-        node->pageCounter = childPageCounter;
+        node->pageCounter = childPageCounter;*/
         r = 0;
         j = 0;
 
@@ -734,6 +738,7 @@ void ExternalHeap::siftup(Node *node) {
         delete(outChild);
         delete(min);
 
+        // Opdater records og pageCounter
         node->records = recordsToChild;
         parent->records = recordsToParent;
         if(parent->children[parent->childrenCounter-1]->id == node->id) {
@@ -750,6 +755,7 @@ void ExternalHeap::siftup(Node *node) {
             pages++;
         }
         node->pageCounter = pages;
+
         pages = parent->records / pageSize;
         if(parent->records % pageSize != 0) {
             pages++;
@@ -952,6 +958,7 @@ void ExternalHeap::deleteFromRoot() {
 void ExternalHeap::siftdown(Node* node) {
 
     cout << "siftdown on node " << node->id << '\n';
+    cout << "#records = " << node->records << " #children = " << node->childrenCounter << '\n';
 
 
     if(node->childrenCounter == 0) {
@@ -960,278 +967,339 @@ void ExternalHeap::siftdown(Node* node) {
     }
     else {
 
-        int inputCounter[node->childrenCounter+1]; // <------------------------------------ OBS! Skal det news? Eller er det så småt at det kan være op stack?
-        InputStream* inputStreams[node->childrenCounter+1];
+        int inputCounter[node->childrenCounter +
+                         1]; // <------------------------------------ OBS! Skal det news? Eller er det så småt at det kan være op stack?
+        InputStream *inputStreams[node->childrenCounter + 1];
 
         int toread = 0;
-        InputStream* in;
-        if(node->records != 0) {
+        InputStream *in;
+        if (node->records != 0) {
             // Først en inputStream til node
 
             toread = node->records % pageSize;
-            if(toread == 0 && node->records != 0) {
+            if (toread == 0 && node->records != 0) {
                 toread = pageSize;
             }
 
-            if(streamType == 1) {
+            if (streamType == 1) {
                 in = new InputStreamA();
-            }
-            else if(streamType == 2) {
+            } else if (streamType == 2) {
                 in = new InputStreamB();
+            } else if (streamType == 3) {
+                in = new InputStreamC(blockSize / 4);
+            } else if (streamType == 4) {
+                in = new InputStreamD(blockSize, toread);
             }
-            else if(streamType == 3) {
-                in = new InputStreamC(blockSize/4);
-            }
-            else if(streamType == 4) {
-                in = new InputStreamD(blockSize,toread);
-            }
-            in->open(node->pages[node->pageCounter-1].c_str());
-            for(int i = 1; i <= toread; i++) {
+            in->open(node->pages[node->pageCounter - 1].c_str());
+            for (int i = 1; i <= toread; i++) {
                 mergeBinBuffer[i] = new BinElement(0, in->readNext());
             }
             inputStreams[0] = in;
+            node->pageCounter--;
         }
-
 
 
         int total = toread;
 
         inputCounter[0] = 1;
-        node->pageCounter--;
 
         // Gør det samme for børnene
-        for(int i = 1; i <= node->childrenCounter; i++) {
-            InputStream* in;
-            int toread = node->children[i-1]->records % pageSize;
-            if(toread == 0) {
+        for (int i = 1; i <= node->childrenCounter; i++) {
+            InputStream *in;
+            int toread = node->children[i - 1]->records % pageSize;
+            if (toread == 0) {
                 toread = pageSize;
             }
 
             inputCounter[i] = 1;
 
-            if(streamType == 1) {
+            if (streamType == 1) {
                 in = new InputStreamA();;
-            }
-            else if(streamType == 2) {
+            } else if (streamType == 2) {
                 in = new InputStreamB();
+            } else if (streamType == 3) {
+                in = new InputStreamC(blockSize / 4);
+            } else if (streamType == 4) {
+                in = new InputStreamD(blockSize, toread);
             }
-            else if(streamType == 3) {
-                in = new InputStreamC(blockSize/4);
-            }
-            else if(streamType == 4) {
-                in = new InputStreamD(blockSize,toread);
-            }
-            cout << "Nodes child: " << node->children[i-1]->id << '\n';
-            cout << "Opening: " << node->children[i-1]->pages[node->children[i-1]->pageCounter-1].c_str() << '\n';
-            in->open(node->children[i-1]->pages[node->children[i-1]->pageCounter-1].c_str());
-            for(int j = 1; j <= toread; j++) {
-                mergeBinBuffer[total+j] = new BinElement(i,in->readNext());
+            cout << "Nodes child id = " << node->children[i - 1]->id << '\n';
+            //cout << "Opening: " << node->children[i - 1]->pages[node->children[i - 1]->pageCounter - 1].c_str() << '\n';
+            in->open(node->children[i - 1]->pages[node->children[i - 1]->pageCounter - 1].c_str());
+            for (int j = 1; j <= toread; j++) {
+                mergeBinBuffer[total + j] = new BinElement(i, in->readNext());
             }
             inputStreams[i] = in;
             total = total + toread;
-            node->children[i-1]->pageCounter--; // Brug som counter til at se om vi senere kan læse mere fra denne
+            node->children[i - 1]->pageCounter--; // Brug som counter til at se om vi senere kan læse mere fra denne
         }
 
         // Dan en heap
-        Binary* bin = new Binary();
+        Binary *bin = new Binary();
         bin->setheap(mergeBinBuffer, total);
 
         // Outstream til root
-        OutputStream* out;
-        if(streamType == 1) {
+        OutputStream *out;
+        if (streamType == 1) {
             out = new OutputStreamA();;
-        }
-        else if(streamType == 2) {
+        } else if (streamType == 2) {
             out = new OutputStreamB();
-        }
-        else if(streamType == 3) {
-            out = new OutputStreamC(blockSize/4);
-        }
-        else if(streamType == 4) {
-            out = new OutputStreamD(blockSize,fanout*pageSize);
+        } else if (streamType == 3) {
+            out = new OutputStreamC(blockSize / 4);
+        } else if (streamType == 4) {
+            out = new OutputStreamD(blockSize, fanout * pageSize);
         }
         out->create("outRoot");
 
         // Fyld root ud med ints fra heap
-        for(int i = 0; i < fanout*pageSize; i++) {
-            BinElement* ele = bin->outheap(mergeBinBuffer, total);
+        for (int i = 0; i < fanout * pageSize; i++) {
+            BinElement *ele = bin->outheap(mergeBinBuffer, total);
             out->write(&ele->value);
             total--;
 
-            // Find en ny value og genbrug el
-            if(inputCounter[ele->id] - 1 != 0) {
-                inputCounter[ele->id] = inputCounter[ele->id]-1;
-                ele->value = inputStreams[ele->id]->readNext();
-                bin->inheap(mergeBinBuffer,total,ele);
-                total++;
-                if(ele->id != 0) {
-                    node->children[ele->id-1]->records--; // Tæl ned nu, ryd op senere
-                }
-                else {
-                    node->records--;
-                }
+            cout << "Placed " << ele->value << " in file outRoot" << '\n';
+
+            if (ele->id != 0) {
+                node->children[ele->id - 1]->records--; // Tæl ned nu, ryd op senere
+            } else {
+                node->records--;
             }
-            else {
+
+            // Find en ny value og genbrug ele
+            if (inputCounter[ele->id] - 1 != 0) {
+                inputCounter[ele->id] = inputCounter[ele->id] - 1;
+                ele->value = inputStreams[ele->id]->readNext();
+                bin->inheap(mergeBinBuffer, total, ele);
+                total++;
+
+
+            } else {
                 // Skift page
 
                 // Luk gammel in
-                InputStream* in = inputStreams[ele->id];
+                InputStream *in = inputStreams[ele->id];
                 in->close();
-                delete(in);
+                delete (in);
 
                 // Hvis der er flere pages at indlæse
-                if(ele->id == 0) {
-                    if(node->pageCounter > 0) {
-                        if(streamType == 1) {
+                if (ele->id == 0) {
+                    if (node->pageCounter > 0) {
+                        if (streamType == 1) {
                             in = new InputStreamA();;
-                        }
-                        else if(streamType == 2) {
+                        } else if (streamType == 2) {
                             in = new InputStreamB();
+                        } else if (streamType == 3) {
+                            in = new InputStreamC(blockSize / 4);
+                        } else if (streamType == 4) {
+                            in = new InputStreamD(blockSize, toread);
                         }
-                        else if(streamType == 3) {
-                            in = new InputStreamC(blockSize/4);
-                        }
-                        else if(streamType == 4) {
-                            in = new InputStreamD(blockSize,toread);
-                        }
-                        in->open(node->pages[node->pageCounter-1].c_str());
+                        in->open(node->pages[node->pageCounter - 1].c_str());
                         ele->value = in->readNext();
                         bin->inheap(mergeBinBuffer, total, ele);
                         total++;
                         inputStreams[0] = in;
-                        inputCounter[0] = pageSize-1;
+                        inputCounter[0] = pageSize - 1;
                         node->pageCounter--;
                     }
                     // Ellers gør intet, uden et nyt element i bin vil vi aldrig kigge på root igen
-                }
-                else {
-                    if(node->children[ele->id-1]->pageCounter > 0) {
-                        if(streamType == 1) {
+                } else {
+                    if (node->children[ele->id - 1]->pageCounter > 0) {
+                        if (streamType == 1) {
                             in = new InputStreamA();;
-                        }
-                        else if(streamType == 2) {
+                        } else if (streamType == 2) {
                             in = new InputStreamB();
+                        } else if (streamType == 3) {
+                            in = new InputStreamC(blockSize / 4);
+                        } else if (streamType == 4) {
+                            in = new InputStreamD(blockSize, toread);
                         }
-                        else if(streamType == 3) {
-                            in = new InputStreamC(blockSize/4);
-                        }
-                        else if(streamType == 4) {
-                            in = new InputStreamD(blockSize,toread);
-                        }
-                        in->open(node->children[ele->id-1]->pages[node->children[ele->id-1]->pageCounter-1].c_str());
+                        in->open(node->children[ele->id - 1]->pages[node->children[ele->id - 1]->pageCounter -
+                                                                    1].c_str());
                         ele->value = in->readNext();
                         bin->inheap(mergeBinBuffer, total, ele);
                         total++;
                         inputStreams[ele->id] = in;
-                        inputCounter[ele->id] = pageSize-1;
-                        node->children[ele->id-1]->pageCounter--;
+                        inputCounter[ele->id] = pageSize - 1;
+                        node->children[ele->id - 1]->pageCounter--;
                     }
                     // Ellers gør intet, uden et nyt element i bin vil vi aldrig kigge på denne node igen
                 }
             }
         }
-        //out->close(); Bliver gjort i linie 1134
-        //delete(out);
+        // Skal gøres her for a flushe bufferent i outputstream
+        out->close();
+        delete(out);
 
-        if(toread != 0) {
-            InputStream* in = inputStreams[0];
+        if (toread != 0) {
+            InputStream *in = inputStreams[0];
             in->close();
-            delete(in);
+            delete (in);
         }
 
-        for(int i = 1; i <= node->childrenCounter; i++) {
-            InputStream* in = inputStreams[i];
-            in->close();
-            delete(in);
-            // Bemærk at vi ikke ryddede op i dem der ikke længere blev læst fra ovenover,
-            // derfor kan vi trygt løbe dem igennem og lukke dem nu.
+        for (int i = 1; i <= node->childrenCounter; i++) {
+            InputStream *in = inputStreams[i];
+            if (inputCounter[i] - 1 != 0) {
+                in->close();
+                delete (in);
+            }
         }
 
-        if(streamType == 1) {
+        if (streamType == 1) {
             in = new InputStreamA();
-        }
-        else if(streamType == 2) {
+        } else if (streamType == 2) {
             in = new InputStreamB();
-        }
-        else if(streamType == 3) {
-            in = new InputStreamC(blockSize/4);
-        }
-        else if(streamType == 4) {
-            in = new InputStreamD(blockSize,fanout*pageSize);
+        } else if (streamType == 3) {
+            in = new InputStreamC(blockSize / 4);
+        } else if (streamType == 4) {
+            in = new InputStreamD(blockSize, fanout * pageSize);
         }
         in->open("outRoot");
 
+        // Skrev tidligere til node i sorteret rækkefølge
+        // mind stil størst, men skal skrives størst til mindst!
+
+        for (int i = 1; i <= fanout * pageSize; i++) {
+            int ret = in->readNext();
+            mergeIntBuffer[i] = ret;
+            cout << "Placed " << ret << " in mergeIntBuffer" << '\n';
+        }
+        MinHeap *min = new MinHeap();
+        min->sortDescending(mergeIntBuffer, fanout * pageSize);
+        delete (min);
+
+
+        if (streamType == 1) {
+            out = new OutputStreamA();
+        } else if (streamType == 2) {
+            out = new OutputStreamB();
+        } else if (streamType == 3) {
+            out = new OutputStreamC(blockSize / 4);;
+        } else if (streamType == 4) {
+            out = new OutputStreamD(blockSize, pageSize);
+        }
+        ostringstream oss1;
+        ostringstream oss2;
+        oss1 << node->id;
+        oss2 << 0;
+        string s = "node" + oss1.str() + "page" + oss2.str();
+        const char *test = s.c_str();
+        out->create(test);
 
         int r = 0;
-        int j = pageSize;
-        for(int i = 1; i <= fanout*pageSize; i++) {
-            int val = in->readNext();
+        int j = 0;
+        for (int i = 1; i <= fanout * pageSize; i++) {
+            int val = mergeIntBuffer[i];
             j++;
-            if(j > pageSize) {
+            if( j <= pageSize) {
+                out->write(&val);
+                cout << "DeleteMin writing val=" << val << " to node id=" << node->id << " page=" << r << '\n';
+            }
+            else {
                 out->close();
-                delete(out);
+                delete (out);
 
-                if(streamType == 1) {
+                r++;
+                if (streamType == 1) {
                     out = new OutputStreamA();
-                }
-                else if(streamType == 2) {
+                } else if (streamType == 2) {
                     out = new OutputStreamB();
-                }
-                else if(streamType == 3) {
-                    out = new OutputStreamC(blockSize/4);;
-                }
-                else if(streamType == 4) {
-                    out = new OutputStreamD(blockSize,pageSize);
+                } else if (streamType == 3) {
+                    out = new OutputStreamC(blockSize / 4);;
+                } else if (streamType == 4) {
+                    out = new OutputStreamD(blockSize, pageSize);
                 }
                 ostringstream oss1;
                 ostringstream oss2;
                 oss1 << node->id;
                 oss2 << r;
                 string s = "node" + oss1.str() + "page" + oss2.str();
-                const char* test = s.c_str();
+                const char *test = s.c_str();
                 out->create(test);
 
+                cout << "DeleteMin writing val=" << val << " to node id=" << node->id << " page=" << r << '\n';
+                out->write(&val);
+                j = 1;
+            }
+        }
+
+        out->close();
+        delete (out);
+        in->close();
+        delete (in);
+
+
+        /* Gammel kode, virkede ikke korrekt, mindre detalje med outstream rækkefølge
+        int r = 0;
+        int j = pageSize;
+        for (int i = 1; i <= fanout * pageSize; i++) {
+            int val = mergeIntBuffer[i];
+            j++;
+            if (j > pageSize) {
+                out->close();
+                delete (out);
+
+                if (streamType == 1) {
+                    out = new OutputStreamA();
+                } else if (streamType == 2) {
+                    out = new OutputStreamB();
+                } else if (streamType == 3) {
+                    out = new OutputStreamC(blockSize / 4);;
+                } else if (streamType == 4) {
+                    out = new OutputStreamD(blockSize, pageSize);
+                }
+                ostringstream oss1;
+                ostringstream oss2;
+                oss1 << node->id;
+                oss2 << r;
+                string s = "node" + oss1.str() + "page" + oss2.str();
+                const char *test = s.c_str();
+                out->create(test);
+
+                cout << "DeleteMin writing val=" << val << " to node id=" << node->id << " page=" << r << '\n';
                 out->write(&val);
                 j = 1;
                 r++;
 
-            }
-            else {
+            } else {
                 out->write(&val);
+                cout << "DeleteMin writing val=" << val << " to node id=" << node->id << " page=" << r << '\n';
             }
-        }
-        out->close();
-        delete(out);
-        in->close();
-        delete(in);
+        }*/
 
-        node->records = fanout*pageSize;
-        node->pageCounter = r;
+
+
+        node->records = fanout * pageSize;
+        int pages = node->records / pageSize;
+        if(node->records % pageSize != 0) {
+            pages++;
+        }
+        node->pageCounter = pages;
 
         // Ryd op i børnene, deres records er talt ned
         // og pages er talt ned. Men pages kan være forkert.
 
-        for(int i = 0; i < node->childrenCounter; i++) {
+        for (int i = 0; i < node->childrenCounter; i++) {
             int pages = node->children[i]->records / pageSize;
-            if(node->children[i]->records % pageSize != 0) {
+            if (node->children[i]->records % pageSize != 0) {
                 pages++;
             }
             node->children[i]->pageCounter = pages;
             // Kan update last page, men vi bruger den ikke?
         }
 
-        for(int i = 0; i < node->childrenCounter; i++) {
+        for (int i = 0; i < node->childrenCounter; i++) {
             // Se om vi skal køre siftdown på barnet.
-            if(node->children[i]->records < fanout*pageSize / 2) {
+            if (node->children[i]->records < fanout * pageSize / 2) {
 
                 siftdown(node->children[i]);
             }
         }
-
     }
 }
 
+
 void ExternalHeap::siftdownLeaf(Node *node) {
+
+    cout << "SiftDownLeaf on node " << node->id << '\n';
 
     if(node->id != lastNode->id) {
 
@@ -1390,6 +1458,7 @@ void ExternalHeap::siftdownLeaf(Node *node) {
             Node* parent = lastNode->parent;
             parent->childrenCounter--;
             // Kan her opdateres lastChildsPage med mere, men vi bruger det ikke
+            cout << "Deleted node id=" << lastNode->id << '\n';
             lastNode = lastNode->predecessor;
             nodeCounter--;
         }
