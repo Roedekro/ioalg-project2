@@ -1176,13 +1176,16 @@ void ExternalHeap::siftdown(Node* node) {
             }
             node->children[i]->pageCounter = pages;
             // Kan update last page, men vi bruger den ikke?
+        }
 
+        for(int i = 0; i < node->childrenCounter; i++) {
             // Se om vi skal køre siftdown på barnet.
             if(node->children[i]->records < fanout*pageSize / 2) {
 
                 siftdown(node->children[i]);
             }
         }
+
     }
 }
 
