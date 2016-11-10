@@ -610,8 +610,9 @@ void ExternalHeap::siftup(Node *node) {
 
         for(int i = 1; i <= recordsToParent; i++) {
             j++;
-            if(j < pageSize) {
+            if(j <= pageSize) {
                 outPar->write(&mergeIntBuffer[i]);
+                cout << "Wrote int = " << mergeIntBuffer[i] << " to parent page = " << r << '\n';
             }
             else {
                 r++;
@@ -696,10 +697,10 @@ void ExternalHeap::siftup(Node *node) {
         r = 0;
         j = 0;
 
-        for(int i = 1; i <= recordsToParent; i++) {
+        for(int i = 1; i <= recordsToChild; i++) {
             j++;
             if(j <= pageSize) {
-                outChild->write(&mergeIntBuffer[j]);
+                outChild->write(&mergeIntBuffer[i]);
             }
             else {
                 r++;
@@ -820,6 +821,8 @@ void ExternalHeap::siftup(Node *node) {
         cout << "Updating RootPageBuffer " <<'\n';
         cout << "Root ID = " << rootNode->id << '\n';
         cout << "PageCounter = " << rootNode->pageCounter << '\n';
+
+
 
         inRoot->open(rootNode->pages[rootNode->pageCounter-1].c_str());
 
