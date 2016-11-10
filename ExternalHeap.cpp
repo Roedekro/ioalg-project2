@@ -899,12 +899,14 @@ void ExternalHeap::deleteFromRoot() {
 
     bool read = false;
 
-    if(rootNode->records % pageSize != 1) {
-        rootNode->records--;
+    rootNode->records--;
+    if(rootNode->records % pageSize != 0) {
+        //rootNode->records--;
+        cout << "Decreased root records" << '\n';
     }
     else {
         // Læs ny side ind
-        rootNode->records--;
+        //rootNode->records--;
         rootNode->pageCounter--;
         read = true;
     }
@@ -937,7 +939,9 @@ void ExternalHeap::deleteFromRoot() {
         in->open(rootNode->pages[rootNode->pageCounter-1].c_str());
 
         for(int i = 1; i <= toRead; i++) {
-            rootPageBuffer[i] = in->readNext();
+            int ret = in->readNext();
+            rootPageBuffer[i] = ret;
+            cout << "DeleteFromRoot inserted into rootbuffer " << ret << '\n';
         }
         rootPageBufferCounter = toRead;
         in->close();
@@ -959,30 +963,36 @@ void ExternalHeap::siftdown(Node* node) {
         int inputCounter[node->childrenCounter+1]; // <------------------------------------ OBS! Skal det news? Eller er det så småt at det kan være op stack?
         InputStream* inputStreams[node->childrenCounter+1];
 
-        // Først en inputStream til node
+        int toread = 0;
         InputStream* in;
-        int toread = node->records % pageSize;
-        if(toread == 0 && node->records != 0) {
-            toread = pageSize;
+        if(node->records != 0) {
+            // Først en inputStream til node
+
+            toread = node->records % pageSize;
+            if(toread == 0 && node->records != 0) {
+                toread = pageSize;
+            }
+
+            if(streamType == 1) {
+                in = new InputStreamA();
+            }
+            else if(streamType == 2) {
+                in = new InputStreamB();
+            }
+            else if(streamType == 3) {
+                in = new InputStreamC(blockSize/4);
+            }
+            else if(streamType == 4) {
+                in = new InputStreamD(blockSize,toread);
+            }
+            in->open(node->pages[node->pageCounter-1].c_str());
+            for(int i = 1; i <= toread; i++) {
+                mergeBinBuffer[i] = new BinElement(0, in->readNext());
+            }
+            inputStreams[0] = in;
         }
 
-        if(streamType == 1) {
-            in = new InputStreamA();
-        }
-        else if(streamType == 2) {
-            in = new InputStreamB();
-        }
-        else if(streamType == 3) {
-            in = new InputStreamC(blockSize/4);
-        }
-        else if(streamType == 4) {
-            in = new InputStreamD(blockSize,toread);
-        }
-        in->open(node->pages[node->pageCounter-1].c_str());
-        for(int i = 1; i <= toread; i++) {
-            mergeBinBuffer[i] = new BinElement(0, in->readNext());
-        }
-        inputStreams[0] = in;
+
 
         int total = toread;
 
@@ -1123,7 +1133,13 @@ void ExternalHeap::siftdown(Node* node) {
         //out->close(); Bliver gjort i linie 1134
         //delete(out);
 
-        for(int i = 0; i <= node->childrenCounter; i++) {
+        if(toread != 0) {
+            InputStream* in = inputStreams[0];
+            in->close();
+            delete(in);
+        }
+
+        for(int i = 1; i <= node->childrenCounter; i++) {
             InputStream* in = inputStreams[i];
             in->close();
             delete(in);
