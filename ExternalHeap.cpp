@@ -147,7 +147,10 @@ void ExternalHeap::insert(int i) {
             cout << s << '\n';
             in->open(test);
             for(int i = 0; i < pageSize; i++) {
-                rootPageBuffer[i] = in->readNext();
+                int ret = in->readNext();
+                rootPageBuffer[i+1] = ret;
+                cout << "Create node: Inserted into RootPageBuffer " << ret << '\n';
+                //cout << "Inserted in RootPageBuffer " <<
             }
             rootPageBufferCounter = pageSize;
             in->close();
@@ -608,7 +611,7 @@ void ExternalHeap::siftup(Node *node) {
         for(int i = 1; i <= recordsToParent; i++) {
             j++;
             if(j < pageSize) {
-                outPar->write(&mergeIntBuffer[j]);
+                outPar->write(&mergeIntBuffer[i]);
             }
             else {
                 r++;
@@ -814,10 +817,16 @@ void ExternalHeap::siftup(Node *node) {
         else if(streamType == 4) {
             inRoot = new InputStreamD(blockSize,rootPageBufferCounter);
         }
+        cout << "Updating RootPageBuffer " <<'\n';
+        cout << "Root ID = " << rootNode->id << '\n';
+        cout << "PageCounter = " << rootNode->pageCounter << '\n';
+
         inRoot->open(rootNode->pages[rootNode->pageCounter-1].c_str());
 
         for(int i = 1; i <= rootPageBufferCounter; i++) {
-            rootPageBuffer[i] = inRoot->readNext();
+            int ret = inRoot->readNext();
+            rootPageBuffer[i] = ret;
+            cout << "Inserted into RootPageBuffer " << ret << '\n';
         }
         inRoot->close();
         delete(inRoot);
@@ -826,6 +835,9 @@ void ExternalHeap::siftup(Node *node) {
 }
 
 int ExternalHeap::deleteMin() {
+
+    cout << "DeleteMin content of rootBuffer " << rootPageBuffer[1] << '\n';
+    cout << "RootPageBufferCouter = " << rootPageBufferCounter << '\n';
 
     // Sorter både insertBuffer og rootBuffer
     // Brug descending da den er hurtigere and ascending
@@ -864,6 +876,12 @@ int ExternalHeap::deleteMin() {
         rootPageBufferCounter--;
         deleteFromRoot();
     }
+
+    cout << "DeleteMin returning " << ret << '\n';
+    cout << "DeleteMin insertInt " << insertInt << '\n';
+    cout << "DeleteMin rootInt " << rootInt << '\n';
+    cout << "DeleteMin insertBufferCounter " << insertBufferCounter << '\n';
+    cout << "DeleteMin rootPageBufferCounter " << rootPageBufferCounter << '\n';
 
     return ret;
 }
