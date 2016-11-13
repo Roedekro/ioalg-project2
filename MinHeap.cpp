@@ -85,9 +85,14 @@ int MinHeap::deleteMin(int *a, int n) {
 }
 
 void MinHeap::buildHeap(int *a, int n) {
-    for(int i = n-2; i > 0; i--) {
+
+    for(int i = n/2; i > 0; i--) {
         minHeapify(a,n,i);
     }
+
+    /*for(int i = n-2; i > 0; i--) {
+        minHeapify(a,n,i);
+    }*/
 }
 
 // Nye in-place sorting metoder for at gøre det nemmere

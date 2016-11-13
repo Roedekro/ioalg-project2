@@ -4,6 +4,31 @@
 
 using namespace std;
 
+void testMinHeapRandom() {
+    MinHeap* min = new MinHeap();
+    int a[101];
+    for(int i = 1; i <= 101; i++) {
+        a[i] = rand()%10000;
+    }
+
+    min->sortDescending(a,101);
+    delete(min);
+
+    int prev = 2000000;
+    for(int i = 1; i <= 101; i++) {
+        int val = a[i];
+        if(val > prev) {
+            cout << "!!!!!!!!!!!!!!!!!!!!!!" << '\n';
+        }
+        prev = val;
+    }
+
+
+
+
+}
+
+
 void testMinHeap() {
     srand (time(NULL));
     MinHeap* min = new MinHeap();
@@ -58,9 +83,35 @@ void testInsert() {
 
 }
 
+void testInsertRandom() {
+
+    ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3);
+    for(int i = 0; i < 100; i++) {
+        int in = rand() % 10000;
+        cout << "--------------------------------------------------------- Inserting: " << in << '\n';
+        heap->insert(in);
+
+    }
+    cout << "------------------------------------------------------------------ Insert Done\n";
+
+    int prev = -1;
+    for(int i = 0; i < 100; i++) {
+        //cout << "--- " << i << '\n';
+        int ret = heap->deleteMin();
+        cout << "---------------------------------------------------- Deleted: " << ret << " i="<<i<< '\n';
+        if(ret < prev) {
+            cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+        }
+        prev = ret;
+    }
+
+}
+
 int main() {
 
-    testInsert();
+    //testMinHeapRandom();
+    testInsertRandom();
+    //testInsert();
     //testMinHeap();
 
     return 0;
