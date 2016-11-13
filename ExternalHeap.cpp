@@ -1016,7 +1016,7 @@ void ExternalHeap::siftdown(Node* node) {
 
     if(node->childrenCounter == 0) {
         // Special case
-        siftdownLeaf(node);
+        siftdownLeaf(node, true);
     }
     else {
 
@@ -1256,7 +1256,7 @@ void ExternalHeap::siftdown(Node* node) {
 
         int r = 0;
         int j = 0;
-        for (int i = 1; i <= fanout * pageSize; i++) {
+        for (int i = 1; i <= toNode; i++) {
             int val = mergeIntBuffer[i];
             j++;
             if( j <= pageSize) {
@@ -1337,7 +1337,7 @@ void ExternalHeap::siftdown(Node* node) {
 
 
 
-        node->records = fanout * pageSize;
+        node->records = toNode;
         int pages = node->records / pageSize;
         if(node->records % pageSize != 0) {
             pages++;
@@ -1363,11 +1363,15 @@ void ExternalHeap::siftdown(Node* node) {
                 siftdown(node->children[i]);
             }
         }
+
+        if(node->records < fanout*pageSize / 2) {
+            siftdownLeaf(node,true);
+        }
     }
 }
 
 
-void ExternalHeap::siftdownLeaf(Node *node) {
+void ExternalHeap::siftdownLeaf(Node *node, bool b) {
 
     cout << "SiftDownLeaf on node " << node->id << '\n';
 
@@ -1530,6 +1534,8 @@ void ExternalHeap::siftdownLeaf(Node *node) {
 
         }
 
+        Node* prevLastNodeParent = lastNode->parent;
+
         // Ryd op i lastNode
         lastNode->records = lastNode->records - recordsToSteal;
         if(lastNode->records == 0) {
@@ -1551,8 +1557,16 @@ void ExternalHeap::siftdownLeaf(Node *node) {
 
         // Check om vi nu overholder loadCondition
 
-        if(node->records < fanout*pageSize / 2) {
-            siftdownLeaf(node);
+        if(node->records < fanout*pageSize / 2 && node->id != lastNode->id) {
+            // False fordi at vi ikke skal sift up i rekursionen men i denne her siftdownleaf!
+            siftdownLeaf(node, false);
+        }
+
+        // Vi har stjålet fra lastNode, og skal muligvis siftup for at overholde heap condition!
+        if(b == true && prevLastNodeParent->id != node->parent->id && node->id != 1) {
+            cout << "!!! SiftUp som del af siftdown !!! -------------------------- START!\n";
+            siftup(node);
+            cout << "!!! SiftUp som del af siftdown !!! -------------------------- SLUT!\n";
         }
 
     }

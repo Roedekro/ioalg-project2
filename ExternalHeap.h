@@ -32,7 +32,7 @@ public:
     BinElement** mergeBinBuffer;
     void deleteFromRoot();
     void siftdown(Node* node);
-    void siftdownLeaf(Node* node);
+    void siftdownLeaf(Node* node, bool b);
 };
 
 

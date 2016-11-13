@@ -1,6 +1,7 @@
 #include <iostream>
 #include "MinHeap.h"
 #include "ExternalHeap.h"
+#include "TreeChecker.h"
 
 using namespace std;
 
@@ -86,7 +87,7 @@ void testInsert() {
 void testInsertRandom() {
 
     ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3);
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 30; i++) {
         int in = rand() % 10000;
         cout << "--------------------------------------------------------- Inserting: " << in << '\n';
         heap->insert(in);
@@ -94,8 +95,13 @@ void testInsertRandom() {
     }
     cout << "------------------------------------------------------------------ Insert Done\n";
 
+    TreeChecker* tc = new TreeChecker();
+    tc->checkNodeRecursive(heap->rootNode,true);
+    cout << "Total records = " << tc->totalRecords << '\n';
+
+
     int prev = -1;
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 20; i++) {
         //cout << "--- " << i << '\n';
         int ret = heap->deleteMin();
         cout << "---------------------------------------------------- Deleted: " << ret << " i="<<i<< '\n';
@@ -103,7 +109,13 @@ void testInsertRandom() {
             cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
         }
         prev = ret;
+        if(i == 14) {
+            tc->checkNodeRecursive(heap->rootNode,true);
+            cout << "Total records = " << tc->totalRecords << '\n';
+            i = 1000;
+        }
     }
+
 
 }
 
