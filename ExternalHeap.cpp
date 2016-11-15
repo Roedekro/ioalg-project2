@@ -1279,7 +1279,7 @@ void ExternalHeap::siftdown(Node* node) {
 
 
                         // Kun hvis vi ikke er færdige
-                        if(i != toNode - 1) {
+                        if(i != toNode - 1 && node->children[ele->id-1]->id != lastNode->id) {
                             // Vigtig special case. Vi er løbet tør for records i et barn, og den mindste int
                             // kan nu potentielt ligge i barnets børn!
                             // Afbryd vores siftdown, siftdown på barnet, og siftdown på denne node igen.
@@ -1294,7 +1294,7 @@ void ExternalHeap::siftdown(Node* node) {
 
                             // Først afbryd, dvs. skriv til noden de records vi har + de records der ligge i noden
 
-                            int c = node->records;
+                            /*int c = node->records;
                             if(c > 0) {
                                 if (streamType == 1) {
                                     in = new InputStreamA();;
@@ -1456,9 +1456,9 @@ void ExternalHeap::siftdown(Node* node) {
 
                             // Ny metode, bare reset records
                             //node->records = records[0];
-                            /*for(int m = 1; m <= node->childrenCounter; m++) {
-                                node->children[m-1]->records = records[m];
-                            }*/
+                            //for(int m = 1; m <= node->childrenCounter; m++) {
+                                //node->children[m-1]->records = records[m];
+                            //}
 
                             int pages = node->records / pageSize;
                             if(node->records % pageSize != 0) {
@@ -1467,8 +1467,8 @@ void ExternalHeap::siftdown(Node* node) {
                             node->pageCounter = pages;
 
                             if(node->records > fanout*pageSize) {
-                                cout << "FEJL I NODE " << node->id << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
-                                cout << "i="<<i<<" c="<<c<<'\n';
+                                //cout << "FEJL I NODE " << node->id << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+                                //cout << "i="<<i<<" c="<<c<<'\n';
                             }
 
 
@@ -1485,6 +1485,8 @@ void ExternalHeap::siftdown(Node* node) {
                                 node->children[j]->pageCounter = pages;
                             }
 
+                            //siftdown(node->children[ele->id-1]);
+
 
                             // Vi har nu afbrudt siftdown
                             // Kald siftdown på det barn der løb tør for records
@@ -1499,11 +1501,92 @@ void ExternalHeap::siftdown(Node* node) {
                             // Kald nu siftdown på node igen
                             siftdown(node);
 
-                            if(node->id >= lastNode->id && node->haltedSiftup) {
+                            if(node->id <= lastNode->id && node->haltedSiftup) {
                                 siftup(node); // Fordi vi bremsede en eventuel siftup
                                 node->haltedSiftup = false;
                             }
                             //cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!----- SPECIAL CASE SLUT -----!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+
+                            /*if(node->parent != NULL) {
+                                node->parent->inSiftDown = true;
+                            }
+                            siftup(node->children[ele->id -1]);
+                            if(node->parent != NULL) {
+                                node->parent->inSiftDown = false;
+                            }
+                            siftdown(node);*/
+
+                            /*if(node->parent != NULL) {
+                                node->parent->inSiftDown = true;
+                            }
+                            siftdown(node->children[ele->id -1]);
+                            if(node->parent != NULL) {
+                                node->parent->inSiftDown = false;
+                            }
+                            siftdown(node);*/
+
+
+
+                            // Sidste forsøg
+
+                            out->close();
+                            delete(out);
+
+                            if (toread != 0) {
+                                InputStream *in = inputStreams[0];
+                                if(inputCounter[0] -1 > 0) {
+                                    in->close();
+                                    delete (in);
+                                }
+                            }
+
+                            for (int j = 1; j <= node->childrenCounter; j++) {
+                                InputStream *in = inputStreams[j];
+                                if (inputCounter[j] - 1 != 0) {
+                                    in->close();
+                                    delete (in);
+                                }
+                            }
+
+                            node->records = records[0];
+                            for(int m = 1; m <= node->childrenCounter; m++) {
+                                node->children[m-1]->records = records[m];
+                            }
+
+                            int pages = node->records / pageSize;
+                            if(node->records % pageSize != 0) {
+                                pages++;
+                            }
+                            node->pageCounter = pages;
+
+                            if(node->records > fanout*pageSize) {
+                                //cout << "FEJL I NODE " << node->id << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+                                /*//cout << "i="<<i<<" c="<<c<<'\n';*/
+                            }
+
+                            // Ryd op i børnene, deres records er talt ned
+                            // og pages er talt ned. Men pages kan være forkert.
+
+                            for (int j = 0; j < node->childrenCounter; j++) {
+                                int pages = node->children[j]->records / pageSize;
+                                if (node->children[j]->records % pageSize != 0) {
+                                    pages++;
+                                }
+                                node->children[j]->pageCounter = pages;
+                            }
+
+                            node->inSiftDown = true;
+                            siftdown(node->children[ele->id -1]);
+                            int argh = node->children[ele->id -1]->records;
+                            node->inSiftDown = false;
+                            siftdown(node);
+
+
+
+
+
+
+
                             delete(ele);
                             return;
                         }
@@ -1973,6 +2056,14 @@ void ExternalHeap::siftdownLeaf(Node *node, bool b) {
             siftdownLeaf(node, false);
         }
 
+        if(node->records == 0 && node->id == lastNode->id) {
+            checkLastNodeRecursive();
+            /*//cout << "Deleted node id=" << lastNode->id << '\n';
+            lastNode->parent->childrenCounter--;
+            lastNode = lastNode->predecessor;
+            nodeCounter--;*/
+        }
+
         // Vi har stjålet fra lastNode, og skal muligvis siftup for at overholde heap condition!
         if(b == true && prevLastNodeParent->id != node->parent->id && node->id != 1) {
             //cout << "!!! SiftUp som del af siftdown !!! -------------------------- START!\n";
@@ -1990,5 +2081,16 @@ void ExternalHeap::siftdownLeaf(Node *node, bool b) {
             lastNode = lastNode->predecessor;
             nodeCounter--;
         }
+    }
+}
+
+void ExternalHeap::checkLastNodeRecursive() {
+
+    if(lastNode->records == 0) {
+        //cout << "Deleted node id=" << lastNode->id << '\n';
+        lastNode->parent->childrenCounter--;
+        lastNode = lastNode->predecessor;
+        nodeCounter--;
+        checkLastNodeRecursive();
     }
 }

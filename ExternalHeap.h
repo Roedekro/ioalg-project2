@@ -34,6 +34,7 @@ public:
     void siftdown(Node* node);
     void siftdownLeaf(Node* node, bool b);
     int specialCounter;
+    void checkLastNodeRecursive();
 };
 
 
