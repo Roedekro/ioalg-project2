@@ -96,8 +96,8 @@ void testInsertRandom() {
     }
     cout << "------------------------------------------------------------------ Insert Done\n";
 
-    TreeChecker* tc = new TreeChecker();
-    //tc->checkNodeRecursive(heap->rootNode,true);
+    TreeChecker* tc = new TreeChecker(2,1);
+    //tc->checkNodeRecursive(heap->rootNode,false);
     //cout << "Total records = " << tc->totalRecords << '\n';
 
 
@@ -115,12 +115,12 @@ void testInsertRandom() {
             cout << "Total records = " << tc->totalRecords << '\n';
             i = 1000;
         }*/
-        /*if(i == 5) {
+        if(i == 292) {
             tc->checkNodeRecursive(heap->rootNode,false);
             cout << "Total records = " << tc->totalRecords << '\n';
             cout << "SpecialCounter = " << heap->specialCounter << '\n';
             i = 1000;
-        }*/
+        }
     }
 
 

@@ -10,10 +10,12 @@
 
 class TreeChecker {
 public:
-    TreeChecker();
+    TreeChecker(int f, int p);
     virtual ~TreeChecker();
     void checkNodeRecursive(Node* node, bool print);
     int totalRecords;
+    int fanout;
+    int pageSize;
 };
 
 

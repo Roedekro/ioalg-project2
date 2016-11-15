@@ -7,11 +7,15 @@
 #include "InputStream.h"
 #include "InputStreamC.h"
 
-TreeChecker::TreeChecker() {
+TreeChecker::TreeChecker(int f, int p) {
     totalRecords = 0;
+    fanout = f;
+    pageSize = p;
 }
 
-TreeChecker::~TreeChecker() {}
+TreeChecker::~TreeChecker() {
+
+}
 
 void TreeChecker::checkNodeRecursive(Node *node, bool print) {
 
@@ -27,6 +31,16 @@ void TreeChecker::checkNodeRecursive(Node *node, bool print) {
     InputStreamC* inPar = new InputStreamC(8192);
     InputStreamC* inC1 = new InputStreamC(8192);
     InputStreamC* inC2 = new InputStreamC(8192);
+
+    /*int r = 0;
+    int j = 0;
+    inPar->open(node->pages[0].c_str());
+    for(int i = 0; i < node->records; i++) {
+        j++;
+        if(j <= pageSize)
+    }*/
+
+
 
     inPar->open(node->pages[0].c_str());
     main[0] = inPar->readNext();
