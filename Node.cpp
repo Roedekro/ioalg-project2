@@ -17,6 +17,8 @@ Node::Node(int m, int p, int i, Node *par, Node *pred, int ord) {
     orderAmongSiblings = ord;
     pages = NULL;
     records = m*p;
+    inSiftDown = false;
+    haltedSiftup = false;
 }
 
 Node::~Node() {}

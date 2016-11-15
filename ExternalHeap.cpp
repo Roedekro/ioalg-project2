@@ -256,7 +256,7 @@ void ExternalHeap::siftup(Node *node) {
 
     Node* parent = node->parent;
     bool b = true;
-    while(b && (parent != NULL)) {
+    while(b && (parent != NULL) && parent->inSiftDown == false) {
 
         //cout << "-SiftUp node id = " << node->id << '\n';
 
@@ -388,8 +388,8 @@ void ExternalHeap::siftup(Node *node) {
             inChild = new InputStreamD(blockSize,pageSize);
         }
 
-        int parentCounter = pageSize;
-        int childCounter = pageSize;
+        int parentCounter = 1;
+        int childCounter = 1;
         int parentPageCounter = parent->pageCounter;
         int childPageCounter = node->pageCounter;
         int binCounter = readFromParent + readFromChild;
@@ -514,7 +514,7 @@ void ExternalHeap::siftup(Node *node) {
 
             if(ele->id == 1) {
                 parentCounter--;
-                if(parentCounter != 0) {
+                if(parentCounter > 0) {
                     // Genbrug element
                     ele->value = inPar->readNext();
                     bin->inheap(mergeBinBuffer, binCounter, ele);
@@ -525,7 +525,7 @@ void ExternalHeap::siftup(Node *node) {
                     inPar->close();
                     delete(inPar);
                     parentPageCounter--;
-                    if(parentPageCounter != 0) {
+                    if(parentPageCounter > 0) {
                         if(streamType == 1) {
                             inPar = new InputStreamA();;
                         }
@@ -543,8 +543,18 @@ void ExternalHeap::siftup(Node *node) {
                         parentCounter = pageSize;
                         ele->value = inPar->readNext();
                         bin->inheap(mergeBinBuffer, binCounter, ele);
+
                         binCounter++;
                         //cout << "Placed " << ele->value << " in mergeBuffer\n";
+                        /*parentCounter--;
+                        while(parentCounter > 0) {
+                            BinElement* newEle = new BinElement(1,inPar->readNext());
+                            bin->inheap(mergeBinBuffer,binCounter,newEle);
+                            binCounter++;
+                            parentCounter--;
+                            //cout << "Placed " << newEle->value << " in mergeBuffer\n";
+                        }*/
+
                     }
                     else {
                         delete(ele);
@@ -814,6 +824,9 @@ void ExternalHeap::siftup(Node *node) {
         // Setup for næste iteration
         node = parent;
         parent = node->parent;
+        if(parent != NULL && parent->inSiftDown) {
+            parent->haltedSiftup = true;
+        }
 
         /*
         FEJL
@@ -1124,6 +1137,13 @@ void ExternalHeap::siftdown(Node* node) {
             toNode = fanout*pageSize;
         }
 
+        // Restore points
+        int records[fanout+1];
+        records[0] = node->records;
+        for(int i = 1; i <= node->childrenCounter; i++) {
+            records[i] = node->children[i-1]->records;
+        }
+
 
         // Alternativ siftup løsning
         bool b = false;
@@ -1221,7 +1241,59 @@ void ExternalHeap::siftdown(Node* node) {
 
                             specialCounter++;
 
-                            // Først afbryd, dvs. skriv til noden de records vi har
+                            // Først afbryd, dvs. skriv til noden de records vi har + de records der ligge i noden
+
+                            int c = node->records;
+                            if(c > 0) {
+                                if (streamType == 1) {
+                                    in = new InputStreamA();;
+                                } else if (streamType == 2) {
+                                    in = new InputStreamB();
+                                } else if (streamType == 3) {
+                                    in = new InputStreamC(blockSize / 4);
+                                } else if (streamType == 4) {
+                                    in = new InputStreamD(blockSize, childToRead);
+                                }
+                                in->open(node->pages[0].c_str());
+                            }
+
+                            int q = 0;
+                            int p = 0;
+                            for(int j = 1; j <= node->records; j++){
+                                q++;
+                                if(q <= pageSize) {
+                                    int ret = in->readNext();
+                                    out->write(&ret);
+                                }
+                                else {
+                                    // Load ny page
+                                    p++;
+
+                                    in->close();
+                                    delete(in);
+
+                                    if (streamType == 1) {
+                                        in = new InputStreamA();;
+                                    } else if (streamType == 2) {
+                                        in = new InputStreamB();
+                                    } else if (streamType == 3) {
+                                        in = new InputStreamC(blockSize / 4);
+                                    } else if (streamType == 4) {
+                                        in = new InputStreamD(blockSize, childToRead);
+                                    }
+                                    in->open(node->pages[p].c_str());
+                                    int ret = in->readNext();
+                                    out->write(&ret);
+                                    q = 1;
+
+                                }
+                            }
+
+
+                            if(c > 0) {
+                                in->close();
+                                delete(in);
+                            }
 
                             out->close();
                             delete(out);
@@ -1251,9 +1323,9 @@ void ExternalHeap::siftdown(Node* node) {
                             }
                             in->open("outRoot");
 
-                            // Bemærk at vi henter i records ind
+                            // Bemærk at vi henter i+1+c records ind
 
-                            for (int j = 1; j <= i+1; j++) {
+                            for (int j = 1; j <= i+1+c; j++) {
                                 int ret = in->readNext();
                                 mergeIntBuffer[j] = ret;
                                 //cout << "Placed " << ret << " in mergeIntBuffer" << '\n';
@@ -1282,7 +1354,7 @@ void ExternalHeap::siftdown(Node* node) {
 
                             int r = 0;
                             int j = 0;
-                            for (int x = 1; x <= i+1; x++) {
+                            for (int x = 1; x <= i+1+c; x++) {
                                 int val = mergeIntBuffer[x];
                                 j++;
                                 if( j <= pageSize) {
@@ -1327,12 +1399,27 @@ void ExternalHeap::siftdown(Node* node) {
                             // Bare juster børnenes pageCounter nu.
                             // Hvis de er for små vil det sekundære siftdown på node ordne det
 
-                            node->records = i+1;
+                            node->records = i+1+c;
+
+                            // Ny metode, bare reset records
+                            //node->records = records[0];
+                            for(int m = 1; m <= node->childrenCounter; m++) {
+                                node->children[m-1]->records = records[m];
+                            }
+
                             int pages = node->records / pageSize;
                             if(node->records % pageSize != 0) {
                                 pages++;
                             }
                             node->pageCounter = pages;
+
+                            if(node->records > fanout*pageSize) {
+                                //cout << "FEJL I NODE " << node->id << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+                                ////cout << "i="<<i<<" c="<<c<<'\n';
+                            }
+
+
+
 
                             // Ryd op i børnene, deres records er talt ned
                             // og pages er talt ned. Men pages kan være forkert.
@@ -1345,15 +1432,24 @@ void ExternalHeap::siftdown(Node* node) {
                                 node->children[j]->pageCounter = pages;
                             }
 
+
                             // Vi har nu afbrudt siftdown
                             // Kald siftdown på det barn der løb tør for records
+                            // Men som en del af et siftdown kan der komme et siftup, så sæt
+                            // node->insiftdown = true for at stoppe it siftup til denne node!
+                            node->inSiftDown = true;
                             //cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!----- SPECIAL CASE CLEANED UP<<-----!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
                             siftdown(node->children[ele->id-1]);
 
+                            node->inSiftDown = false;
                             //cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!----- SPECIAL CASE SIFTED CHILD DOWN<<-----!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
                             // Kald nu siftdown på node igen
                             siftdown(node);
 
+                            if(node->id >= lastNode->id && node->haltedSiftup) {
+                                siftup(node); // Fordi vi bremsede en eventuel siftup
+                                node->haltedSiftup = false;
+                            }
                             //cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!----- SPECIAL CASE SLUT -----!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
                             return;
                         }

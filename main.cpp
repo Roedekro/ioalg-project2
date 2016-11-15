@@ -86,8 +86,9 @@ void testInsert() {
 
 void testInsertRandom() {
 
-    ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3);
-    for(int i = 0; i < 30; i++) { // 30 for special case
+    ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3); // VIRKER
+    //ExternalHeap* heap = new ExternalHeap(2,2,8192,4,3);
+    for(int i = 0; i < 300; i++) { // 30 for special case
         int in = rand() % 10000;
         cout << "--------------------------------------------------------- Inserting: " << in << '\n';
         heap->insert(in);
@@ -101,7 +102,7 @@ void testInsertRandom() {
 
 
     int prev = -1;
-    for(int i = 0; i < 30; i++) { // 20 for special case
+    for(int i = 0; i < 300; i++) { // 20 for special case
         //cout << "--- " << i << '\n';
         int ret = heap->deleteMin();
         cout << "---------------------------------------------------- Deleted: " << ret << " i="<<i<< '\n';
@@ -114,12 +115,12 @@ void testInsertRandom() {
             cout << "Total records = " << tc->totalRecords << '\n';
             i = 1000;
         }*/
-        if(i == 5) {
+        /*if(i == 5) {
             tc->checkNodeRecursive(heap->rootNode,false);
             cout << "Total records = " << tc->totalRecords << '\n';
             cout << "SpecialCounter = " << heap->specialCounter << '\n';
             i = 1000;
-        }
+        }*/
     }
 
 

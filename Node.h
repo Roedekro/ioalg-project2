@@ -25,6 +25,8 @@ public:
     Node* predecessor;
     int orderAmongSiblings;
     int records;
+    bool inSiftDown;
+    bool haltedSiftup;
 };
 
 
