@@ -1897,8 +1897,8 @@ void ExternalHeap::siftdownLeaf(Node *node, bool b) {
                 j++;
                 c++;
                 if(j <= pageSize) {
+                    int ret = in->readNext();
                     if(c > buffer) {
-                        int ret = in->readNext();
                         mergeIntBuffer[node->records + x] = ret;
                         cout << "SiftDownLeaf: Placed " << ret << " in mergebuffer from " << lastNode->pages[r] << " i="<< i << '\n';
                         x++;
