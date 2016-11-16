@@ -86,8 +86,8 @@ void testInsert() {
 
 void testInsertRandom() {
 
-    ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3); // VIRKER
-    //ExternalHeap* heap = new ExternalHeap(2,2,8192,4,3);
+    //ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3); // VIRKER
+    ExternalHeap* heap = new ExternalHeap(4,8,8192,32,3);
     for(int i = 0; i < 300; i++) { // 30 for special case
         int in = rand() % 10000;
         cout << "--------------------------------------------------------- Inserting: " << in << '\n';
