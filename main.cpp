@@ -144,8 +144,9 @@ void realTest(int fanout, int pageSize, int memory, int block, int type, int run
             heap->deleteMin();
         }
         gettimeofday(&te2,NULL);
-        time_total = time_total + (te2.tv_sec - te1.tv_sec) * 1000 + (te2.tv_usec - te1.tv_usec) / 1000;
-        cout << "Finished test " << i+1 << '\n';
+        long time = (te2.tv_sec - te1.tv_sec) * 1000 + (te2.tv_usec - te1.tv_usec) / 1000;
+        time_total = time_total + time;
+        cout << "Finished test " << i+1 << " in " << time << '\n';
     }
 
     if(runs > 1 && time_total > 0) {
