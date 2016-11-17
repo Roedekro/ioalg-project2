@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
         block = 32768;
         type = 3;
         runs = 10;
-        n = 300;
+        n = 3000;
     }
     else {
         fanout = atoi(argv[1]);

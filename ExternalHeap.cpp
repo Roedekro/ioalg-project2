@@ -1313,8 +1313,8 @@ void ExternalHeap::siftdown(Node* node) {
 
 
                         // Kun hvis vi ikke er færdige
-                        if(i != toNode - 1 && node->children[ele->id-1]->id != lastNode->id &&
-                                node->children[ele->id - 1]->childrenCounter > 0) {
+                        if(i != toNode - 1 && node->children[ele->id-1]->id != lastNode->id) {
+                                        //&& node->children[ele->id - 1]->childrenCounter > 0) {
                             // Vigtig special case. Vi er løbet tør for records i et barn, og den mindste int
                             // kan nu potentielt ligge i barnets børn!
                             // Afbryd vores siftdown, siftdown på barnet, og siftdown på denne node igen.
