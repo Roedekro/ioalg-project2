@@ -163,13 +163,27 @@ int main(int argc, char* argv[]) {
         cout << "fanout pageSize blockSize type runs N" << '\n';
     }
 
-    int fanout = atoi(argv[2]);
-    int pageSize = atoi(argv[3]);
-    int memory = fanout*pageSize;
-    int block = atoi(argv[4]);
-    int type = atoi(argv[5]);
-    int runs = atoi(argv[6]);
-    int n = atoi(argv[7]);
+    int fanout, pageSize, memory,block,type,runs,n;
+
+    if(argc == 1) {
+        fanout = 2;
+        pageSize = 1;
+        memory = fanout*pageSize;
+        block = 32768;
+        type = 3;
+        runs = 10;
+        n = 300;
+    }
+    else {
+
+    }
+    fanout = atoi(argv[2]);
+    pageSize = atoi(argv[3]);
+    memory = fanout*pageSize;
+    block = atoi(argv[4]);
+    type = atoi(argv[5]);
+    runs = atoi(argv[6]);
+    n = atoi(argv[7]);
 
     cout << "Running test with fanout = " << fanout << " pageSize = " << pageSize << " internalMemorySize = " << memory << '\n';
     cout << "blockSize = " << block << " type = " << type << " for " << runs << " runs and N = " << n << '\n';
