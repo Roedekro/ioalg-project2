@@ -143,6 +143,7 @@ void realTest(int fanout, int pageSize, int memory, int block, int type, int run
         for(int j = 0; j < n; j++) {
             heap->deleteMin();
         }
+        delete(heap);
         gettimeofday(&te2,NULL);
         long time = (te2.tv_sec - te1.tv_sec) * 1000 + (te2.tv_usec - te1.tv_usec) / 1000;
         time_total = time_total + time;

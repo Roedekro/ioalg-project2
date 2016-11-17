@@ -41,7 +41,15 @@ ExternalHeap::ExternalHeap(int f, int p, int b, int i, int t) {
 
 }
 
-ExternalHeap::~ExternalHeap() {}
+ExternalHeap::~ExternalHeap() {
+    delete(insertBuffer);
+    delete(mergeBinBuffer);
+    delete(mergeIntBuffer);
+    for(int i = 0; i < nodeVector->size(); i++) {
+        delete(nodeVector->at(i));
+    }
+    delete(nodeVector);
+}
 
 void ExternalHeap::insert(int i) {
 
