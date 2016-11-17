@@ -792,7 +792,7 @@ void ExternalHeap::siftup(Node *node) {
         oss22 << 0;
         string s2 = "node" + oss11.str() + "page" + oss22.str();
         const char* test2 = s2.c_str();
-        outPar->create(test2);
+        outChild->create(test2);
 
         /* Gøres til sidst
         childPageCounter = recordsToChild % pageSize;

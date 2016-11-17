@@ -171,9 +171,9 @@ int main(int argc, char* argv[]) {
         pageSize = 1;
         memory = fanout*pageSize;
         block = 32768;
-        type = 3;
+        type = 4;
         runs = 10;
-        n = 3000;
+        n = 300;
     }
     else {
         fanout = atoi(argv[1]);
