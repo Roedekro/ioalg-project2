@@ -72,6 +72,6 @@ bool InputStreamD::endOfStream() {
 }
 
 void InputStreamD::close() {
-    fclose(file);
     munmap(map, portionSize);
+    fclose(file);
 }

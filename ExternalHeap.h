@@ -10,7 +10,7 @@
 
 class ExternalHeap {
 public:
-    ExternalHeap(int fanout, int pagesize, int blocksize, int internalmemory, int streamtype);
+    ExternalHeap(int fanout, int pagesize, int blocksize, int internalmemory, int streamtype, bool h);
     virtual ~ExternalHeap();
     int fanout;
     int pageSize;
@@ -36,6 +36,7 @@ public:
     int specialCounter;
     void checkLastNodeRecursive();
     bool sorted;
+    bool heapSort;
 };
 
 

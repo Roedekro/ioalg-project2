@@ -71,7 +71,7 @@ void testMinHeap() {
 }
 
 void testInsert() {
-    ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3);
+    ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3,false);
     for(int i = 0; i < 10; i++) {
         heap->insert(i);
         cout << i << '\n';
@@ -88,7 +88,7 @@ void testInsert() {
 void testInsertRandom() {
 
     //ExternalHeap* heap = new ExternalHeap(2,1,8192,2,3); // VIRKER
-    ExternalHeap* heap = new ExternalHeap(4,8,8192,32,3);
+    ExternalHeap* heap = new ExternalHeap(4,8,8192,32,3, true);
     for(int i = 0; i < 300; i++) { // 30 for special case
         int in = rand() % 10000;
         cout << "--------------------------------------------------------- Inserting: " << in << '\n';
@@ -127,7 +127,7 @@ void testInsertRandom() {
 
 }
 
-void realTest(int fanout, int pageSize, int memory, int block, int type, int runs, int n) {
+void realTest(int fanout, int pageSize, int memory, int block, int type, int runs, int n, bool b) {
 
     long time_total = 0;
     struct timeval te1;
@@ -135,7 +135,7 @@ void realTest(int fanout, int pageSize, int memory, int block, int type, int run
 
     for(int i = 0; i < runs; i++) {
         gettimeofday(&te1,NULL);
-        ExternalHeap* heap = new ExternalHeap(fanout,pageSize,block,memory,type);
+        ExternalHeap* heap = new ExternalHeap(fanout,pageSize,block,memory,type,b);
         for(int j = 0; j < n; j++) {
             int in = rand() % 1000000;
             heap->insert(in);
@@ -165,15 +165,17 @@ int main(int argc, char* argv[]) {
     }
 
     int fanout, pageSize, memory,block,type,runs,n;
+    bool heapsort = false;
 
     if(argc <= 1) {
         fanout = 2;
         pageSize = 1;
         memory = fanout*pageSize;
         block = 32768;
-        type = 4;
+        type = 3;
         runs = 10;
         n = 300;
+        heapsort = false;
     }
     else {
         fanout = atoi(argv[1]);
@@ -181,6 +183,10 @@ int main(int argc, char* argv[]) {
         memory = fanout*pageSize;
         block = atoi(argv[3]);
         type = atoi(argv[4]);
+        /*int i = atoi(argv[5]);
+        if(i > 0) {
+            heapsort = true;
+        }*/
         runs = atoi(argv[5]);
         n = atoi(argv[6]);
     }
@@ -189,7 +195,7 @@ int main(int argc, char* argv[]) {
     cout << "Running test with fanout = " << fanout << " pageSize = " << pageSize << " internalMemorySize = " << memory << '\n';
     cout << "blockSize = " << block << " type = " << type << " for " << runs << " runs and N = " << n << '\n';
 
-    realTest(fanout, pageSize,memory,block,type,runs,n);
+    realTest(fanout, pageSize,memory,block,type,runs,n, heapsort);
 
     //testMinHeapRandom();
     //testInsertRandom();

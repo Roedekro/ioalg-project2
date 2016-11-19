@@ -19,7 +19,7 @@
 #include <sstream>
 #include <iostream>
 
-ExternalHeap::ExternalHeap(int f, int p, int b, int i, int t) {
+ExternalHeap::ExternalHeap(int f, int p, int b, int i, int t, bool h) {
 
     fanout = f;
     pageSize = p;
@@ -38,6 +38,7 @@ ExternalHeap::ExternalHeap(int f, int p, int b, int i, int t) {
     mergeBinBuffer = new BinElement*[(fanout+1)*pageSize+1];
     specialCounter = 0;
     sorted = false;
+    heapSort = h;
 
 }
 
@@ -1311,9 +1312,16 @@ void ExternalHeap::siftdown(Node* node) {
                         b = true;
                         y = ele->id;
 
+                        bool condition = true;
+                        if(heapSort) {
+                            if(node->children[ele->id - 1]->childrenCounter < 1) {
+                                condition = false;
+                            }
+                        }
 
                         // Kun hvis vi ikke er færdige
-                        if(i != toNode - 1 && node->children[ele->id-1]->id != lastNode->id) {
+                        if(i != toNode - 1 && node->children[ele->id-1]->id != lastNode->id
+                                && condition) {
                                         //&& node->children[ele->id - 1]->childrenCounter > 0) {
                             // Vigtig special case. Vi er løbet tør for records i et barn, og den mindste int
                             // kan nu potentielt ligge i barnets børn!
@@ -1611,6 +1619,7 @@ void ExternalHeap::siftdown(Node* node) {
                             }
 
                             node->inSiftDown = true;
+                            int childId = node->children[ele->id -1]->id;
                             siftdown(node->children[ele->id -1]);
                             int argh = node->children[ele->id -1]->records;
                             node->inSiftDown = false;
@@ -1832,6 +1841,34 @@ void ExternalHeap::siftdownLeaf(Node *node, bool b) {
     //cout << "SiftDownLeaf on node " << node->id << '\n';
     //cout << "node has " << node->records << " and lastNode has " << lastNode->records << '\n';
 
+    if(heapSort) {
+        if(node->records <= 0 && node->id != 1) {
+            // Opdater parents children
+            Node* parent = node->parent;
+            if(parent->children[parent->childrenCounter-1]->id == node->id) {
+                parent->childrenCounter--;
+            }
+            else {
+                bool override = false;
+                for(int i = 0; i < parent->childrenCounter; i++) {
+
+                    if(parent->children[i]->id == node->id) {
+                        parent->children[i] = parent->children[parent->childrenCounter];
+                    }
+
+                    /*if(override) {
+                        parent->children[i-1] = parent->children[i];
+                    }
+                    if(parent->children[i]->id == node->id) {
+                        override = true;
+                    }*/
+                }
+                parent->childrenCounter--;
+            }
+        }
+        return;
+    }
+
     if(node->id != lastNode->id) {
 
         // Stjæl records fra sidste node
@@ -1883,7 +1920,7 @@ void ExternalHeap::siftdownLeaf(Node *node, bool b) {
 
         // Læs igennem lastNode indtil vi når til den første record vi skal stjæle
 
-        if(recordsToSteal > 0) {
+        /*if(recordsToSteal > 0) {
             InputStream* in;
             if(streamType == 1) {
                 in = new InputStreamA();
@@ -1948,6 +1985,63 @@ void ExternalHeap::siftdownLeaf(Node *node, bool b) {
             }
             in->close();
             delete(in);
+        }*/
+
+
+        // Ny metode til at indlæse records fra lastNode
+        if(recordsToSteal > 0) {
+            int counter = 0;
+            for(int i = lastNode->pageCounter; i > 0; i--) {
+
+                int size = lastNode->records % pageSize;
+                if(size == 0) {
+                    size = pageSize;
+                }
+
+                if(i != lastNode->pageCounter) {
+                    size = pageSize;
+                }
+
+                InputStream* in;
+                if(streamType == 1) {
+                    in = new InputStreamA();
+                }
+                else if(streamType == 2) {
+                    in = new InputStreamB();
+                }
+                else if(streamType == 3) {
+                    in = new InputStreamC(blockSize/4);
+                }
+                else if(streamType == 4) {
+                    in = new InputStreamD(blockSize,size);
+                }
+                in->open(lastNode->pages[i-1].c_str());
+
+                int buffer = 0;
+                if(recordsToSteal - counter - size < 0) {
+                    buffer = counter + size - recordsToSteal;
+                }
+                int c = 0;
+
+                for(int j = size; j > 0; j--) {
+                    c++;
+
+                    if(counter < recordsToSteal) {
+
+                        int ret = in->readNext();
+                        if(c > buffer) {
+                            counter++;
+                            mergeIntBuffer[node->records + counter] = ret;
+                        }
+                    }
+                    else {
+                        j = -1;
+                        i = -1;
+                    }
+                }
+                in->close();
+                delete(in);
+            }
         }
 
 
